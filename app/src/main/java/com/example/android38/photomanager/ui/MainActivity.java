@@ -1,9 +1,10 @@
-package com.example.android38;
+package com.example.android38.photomanager.ui;
 
 import android.os.Bundle;
 import android.view.View;
 import android.view.Menu;
 
+import com.example.android38.R;
 import com.google.android.material.snackbar.Snackbar;
 import com.google.android.material.navigation.NavigationView;
 
