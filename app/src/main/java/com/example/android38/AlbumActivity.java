@@ -1,5 +1,6 @@
 package com.example.android38;
 
+import android.app.Activity;
 import android.os.Bundle;
 import com.example.android38.R;
 import android.view.MenuItem;
@@ -33,6 +34,8 @@ import java.util.List;
 import java.util.ArrayList;
 
 public class AlbumActivity extends AppCompatActivity {
+
+
 
     private Album selectedAlbum;
     private List<Photo> photos;
@@ -91,6 +94,13 @@ public class AlbumActivity extends AppCompatActivity {
                 showPopupMenu(v);
             }
         });
+
+        mStartForResult = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+            if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+                Uri fullPhotoUri = result.getData().getData();
+                // Handle the returned URI (e.g., display it or add it to an album)
+            }
+        });
     }
 
     private void setupUI() {
@@ -146,6 +156,12 @@ public class AlbumActivity extends AppCompatActivity {
         popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
             @Override
             public boolean onMenuItemClick(MenuItem item) {
+
+                if (item.getItemId() == R.id.action_add_photo) {
+                    Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                    mStartForResult.launch(intent);  // Ensure mStartForResult is initialized
+                    return true;
+                }
                 // Handle item clicks here
                 int itemId = item.getItemId();
                 if (itemId == R.id.action_add_photo) {
