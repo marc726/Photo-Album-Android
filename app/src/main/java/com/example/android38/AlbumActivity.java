@@ -1,6 +1,7 @@
 package com.example.android38;
 
 import android.os.Bundle;
+import com.example.android38.R;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
@@ -9,6 +10,18 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.PopupMenu;
+import android.content.Intent;
+import android.net.Uri;
+import android.provider.MediaStore;
+import android.content.DialogInterface;
+import android.widget.Toast;
+
+import androidx.appcompat.app.AlertDialog;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+
+
+
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -17,6 +30,7 @@ import androidx.appcompat.widget.Toolbar;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.util.List;
+import java.util.ArrayList;
 
 public class AlbumActivity extends AppCompatActivity {
 
@@ -26,6 +40,14 @@ public class AlbumActivity extends AppCompatActivity {
 
     private ImageView photoImageView;
     private Button slideshowButton;
+
+    private ActivityResultLauncher<Intent> mStartForResult;
+
+    private static final int REQUEST_IMAGE_GET = 1;
+    private ImageView imageView; // Assuming you have an ImageView to display the photo
+    private Album currentAlbum;  // Assuming you have an Album object to add the photo to
+    private Uri currentPhotoUri;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -125,26 +147,118 @@ public class AlbumActivity extends AppCompatActivity {
             @Override
             public boolean onMenuItemClick(MenuItem item) {
                 // Handle item clicks here
-                switch (item.getItemId()) {
-                    case R.id.action_add_photo:
-                        // Handle add photo action
-                        return true;
-                    case R.id.action_move_photo:
-                        // Handle move photo action
-                        return true;
-                    case R.id.action_delete_photo:
-                        // Handle delete photo action
-                        return true;
-                    case R.id.action_display_photo:
-                        // Handle display photo action
-                        return true;
-                    default:
-                        return false;
+                int itemId = item.getItemId();
+                if (itemId == R.id.action_add_photo) {
+                    // Trigger an intent to open the gallery
+                    // When you want to start the activity for result
+                    Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                    mStartForResult.launch(intent);
+                    return true;
+                } else if (itemId == R.id.action_move_photo) {
+                    // Show a dialog to select an album to move the photo to
+                    showMovePhotoDialog();
+                    return true;
+                } else if (itemId == R.id.action_delete_photo) {
+                    // Confirm and delete the photo
+                    showDeletePhotoDialog();
+                    return true;
+                } else if (itemId == R.id.action_display_photo) {
+                    // Show the photo in full screen or with more details
+                    if (currentPhotoUri != null) {
+                        displayPhoto(currentPhotoUri);
+                    } else {
+                        // Handle the case where no photo is selected or currentPhotoUri is not set
+                        Toast.makeText(AlbumActivity.this, "No photo selected", Toast.LENGTH_SHORT).show();
+                    }
+                    return true;
                 }
+
+                return false;
             }
         });
 
         // Show the PopupMenu
         popupMenu.show();
     }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_IMAGE_GET && resultCode == RESULT_OK) {
+            Uri fullPhotoUri = data.getData();
+
+            // Display the photo in an ImageView (imageView)
+            displayPhoto(fullPhotoUri);
+
+            // Add the photo to the current album
+            addPhotoToAlbum(fullPhotoUri);
+        }
+    }
+
+    private void showMovePhotoDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Move Photo to Album");
+
+        List<String> allAlbumNames = getAllAlbumNames();
+        CharSequence[] albums = allAlbumNames.toArray(new CharSequence[0]);
+
+        builder.setItems(albums, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                movePhotoToAlbum(allAlbumNames.get(which));
+            }
+        });
+
+        builder.setNegativeButton("Cancel", null);
+        AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+
+    private void showDeletePhotoDialog() {
+        new AlertDialog.Builder(this)
+                .setTitle("Delete Photo")
+                .setMessage("Are you sure you want to delete this photo?")
+                .setPositiveButton(android.R.string.yes, (dialog, which) -> {
+                    deletePhoto();
+                })
+                .setNegativeButton(android.R.string.no, null)
+                .show();
+    }
+    private void displayPhoto(Uri photoUri) {
+        if (imageView != null) {
+            imageView.setImageURI(photoUri); // Directly set the Uri of the image to the ImageView
+        }
+    }
+
+    private List<String> getAllAlbumNames() {
+        // TODO: Return a list of album names
+        List<String> albumNames = new ArrayList<>();
+        // Add logic to populate albumNames based on your data
+        return albumNames;
+    }
+
+    private void addPhotoToAlbum(Uri photoUri) {
+        if (currentAlbum != null) {
+            // Create a new Photo object
+            Photo photo = new Photo();
+            photo.setImagePath(photoUri.toString()); // Convert Uri to String and set it
+
+            // Add the photo to the album
+            currentAlbum.addPhoto(photo);
+
+            // TODO: Update UI if necessary and save changes to persistent storage
+        }
+    }
+
+    private void movePhotoToAlbum(String albumName) {
+        // TODO: Implement the logic to move the current photo to the selected album
+        // This involves finding the current photo and album, then moving the photo
+    }
+
+    private void deletePhoto() {
+        // TODO: Implement the logic to delete the current photo from the album
+        // This involves identifying the current photo and removing it
+    }
+
+
 }
