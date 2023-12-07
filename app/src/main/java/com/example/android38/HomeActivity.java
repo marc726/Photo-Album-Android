@@ -113,11 +113,14 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private void openAlbum(int position) {
-        // Implement logic to open the selected album
-        Album selectedAlbum = albums.get(position);
-        Intent intent = new Intent(this, AlbumActivity.class);
-        intent.putExtra("selectedAlbum", selectedAlbum);
-        startActivity(intent);
+        if (position < albums.size()) {
+            Album selectedAlbum = albums.get(position);
+            Intent intent = new Intent(this, AlbumActivity.class);
+            intent.putExtra("selectedAlbum", selectedAlbum);
+            startActivity(intent);
+        } else {
+            Toast.makeText(this, "Album does not exist", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void showCreateAlbumDialog() {
