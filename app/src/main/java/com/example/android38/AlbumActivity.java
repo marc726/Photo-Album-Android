@@ -1,8 +1,13 @@
 package com.example.android38;
+
 import android.os.Bundle;
+import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.ListView;
+
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
 
 public class AlbumActivity extends AppCompatActivity {
 
@@ -18,6 +23,16 @@ public class AlbumActivity extends AppCompatActivity {
 
         // Display the photos in the selected album
         displayPhotos();
+
+        // Set up the back button
+        Button backButton = findViewById(R.id.button2);
+        backButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Handle the back button click (e.g., navigate back)
+                onBackPressed();
+            }
+        });
     }
 
     private void displayPhotos() {
@@ -28,4 +43,3 @@ public class AlbumActivity extends AppCompatActivity {
         listView.setAdapter(adapter);
     }
 }
-

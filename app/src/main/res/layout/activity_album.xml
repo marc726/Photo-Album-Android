@@ -1,4 +1,3 @@
-<!-- activity_album.xml -->
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
@@ -9,7 +8,11 @@
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="?attr/colorPrimary"/>
+        android:background="#2B2B2B"> <!-- Set the background color to grayish black -->
+
+        <!-- You can add other customizations to the Toolbar as needed -->
+
+    </androidx.appcompat.widget.Toolbar>
 
     <ListView
         android:id="@+id/photoListView"
@@ -18,6 +21,17 @@
         android:layout_below="@id/toolbar"
         android:layout_marginTop="0dp" />
 
+    <Button
+        android:id="@+id/button2"
+        android:buttonTint="@color/black"
+        android:layout_width="wrap_content"
+        android:layout_height="64dp"
+        android:background="#FFFFFF"
+        android:text="Back"
+        android:textSize="20sp"
+        android:textColor="@color/black" />
+
     <!-- Add UI components for additional features as needed -->
 
 </RelativeLayout>
+
