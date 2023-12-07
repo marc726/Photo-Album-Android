@@ -48,6 +48,33 @@ public class HomeActivity extends AppCompatActivity {
                 showCreateAlbumDialog();
             }
         });
+
+        // Set up the Delete button
+        Button deleteButton = findViewById(R.id.deleteButton);
+        deleteButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showDeleteAlbumDialog();
+            }
+        });
+
+        // Set up the Rename button
+        Button renameButton = findViewById(R.id.renameButton);
+        renameButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showRenameAlbumDialog();
+            }
+        });
+
+        // Set up the Open button
+        Button openButton = findViewById(R.id.openButton);
+        openButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showOpenAlbumDialog();
+            }
+        });
     }
 
     private void loadAlbumData() {
@@ -72,58 +99,55 @@ public class HomeActivity extends AppCompatActivity {
 
         // Enable multiple item selection
         listView.setChoiceMode(ListView.CHOICE_MODE_SINGLE);
-
-        // Set item click listener for album selection
-        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                openAlbum(position);
-            }
-        });
-
-        // Set up the Delete button
-        Button deleteButton = findViewById(R.id.deleteButton);
-        deleteButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // Implement logic to delete the selected album
-                int selectedPosition = listView.getCheckedItemPosition();
-                if (selectedPosition != ListView.INVALID_POSITION) {
-                    deleteAlbum(selectedPosition);
-                } else {
-                    Toast.makeText(HomeActivity.this, "Select an album to delete", Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
-
-        // Set up the Rename button
-        Button renameButton = findViewById(R.id.renameButton);
-        renameButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // Implement logic to rename the selected album
-                int selectedPosition = listView.getCheckedItemPosition();
-                if (selectedPosition != ListView.INVALID_POSITION) {
-                    showRenameAlbumDialog(selectedPosition);
-                } else {
-                    Toast.makeText(HomeActivity.this, "Select an album to rename", Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
-    }
-
-    private void openAlbum(int position) {
-        if (position < albums.size()) {
-            Album selectedAlbum = albums.get(position);
-            Intent intent = new Intent(this, AlbumActivity.class);
-            intent.putExtra("selectedAlbum", selectedAlbum);
-            startActivity(intent);
-        } else {
-            Toast.makeText(this, "Album does not exist", Toast.LENGTH_SHORT).show();
-        }
     }
 
     private void showCreateAlbumDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Select an Album or Create New Album");
+
+        // Set up the list view to display album names
+        ListView listView = new ListView(this);
+        ArrayAdapter<Album> albumAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, albums);
+        listView.setAdapter(albumAdapter);
+
+        // Set up the dialog layout
+        builder.setView(listView);
+
+        // Set up the buttons
+        builder.setPositiveButton("Create New Album", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                showCreateNewAlbumDialog();
+            }
+        });
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+
+        // Create the dialog
+        final AlertDialog dialog = builder.create();
+
+        // Set up the item click listener for album selection
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                // Close the dialog
+                dialog.dismiss();
+
+                // Perform the create action on the selected album
+                Album selectedAlbum = albums.get(position);
+                createAlbum(selectedAlbum.getAlbumName());
+            }
+        });
+
+        // Show the dialog
+        dialog.show();
+    }
+
+    private void showCreateNewAlbumDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Create New Album");
 
@@ -164,6 +188,56 @@ public class HomeActivity extends AppCompatActivity {
         saveAlbumData();
     }
 
+    private void showDeleteAlbumDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Select an Album to Delete");
+
+        // Set up the list view to display album names
+        ListView listView = new ListView(this);
+        ArrayAdapter<Album> albumAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, albums);
+        listView.setAdapter(albumAdapter);
+
+        // Set up the dialog layout
+        builder.setView(listView);
+
+        // Set up the buttons
+        builder.setPositiveButton("Delete", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                int selectedPosition = listView.getCheckedItemPosition();
+                if (selectedPosition != ListView.INVALID_POSITION) {
+                    deleteAlbum(selectedPosition);
+                } else {
+                    Toast.makeText(HomeActivity.this, "Select an album to delete", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+
+        // Create the dialog
+        final AlertDialog dialog = builder.create();
+
+        // Set up the item click listener for album selection
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                // Close the dialog
+                dialog.dismiss();
+
+                // Perform the delete action on the selected album
+                deleteAlbum(position);
+            }
+        });
+
+        // Show the dialog
+        dialog.show();
+    }
+
     private void deleteAlbum(int position) {
         // Implement logic to delete the selected album
         Album deletedAlbum = albums.remove(position);
@@ -172,7 +246,57 @@ public class HomeActivity extends AppCompatActivity {
         saveAlbumData();
     }
 
-    private void showRenameAlbumDialog(final int position) {
+    private void showRenameAlbumDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Select an Album to Rename");
+
+        // Set up the list view to display album names
+        ListView listView = new ListView(this);
+        ArrayAdapter<Album> albumAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, albums);
+        listView.setAdapter(albumAdapter);
+
+        // Set up the dialog layout
+        builder.setView(listView);
+
+        // Set up the buttons
+        builder.setPositiveButton("Rename", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                int selectedPosition = listView.getCheckedItemPosition();
+                if (selectedPosition != ListView.INVALID_POSITION) {
+                    showRenameDialog(selectedPosition);
+                } else {
+                    Toast.makeText(HomeActivity.this, "Select an album to rename", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+
+        // Create the dialog
+        final AlertDialog dialog = builder.create();
+
+        // Set up the item click listener for album selection
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                // Close the dialog
+                dialog.dismiss();
+
+                // Perform the rename action on the selected album
+                showRenameDialog(position);
+            }
+        });
+
+        // Show the dialog
+        dialog.show();
+    }
+
+    private void showRenameDialog(final int position) {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Rename Album");
 
@@ -207,6 +331,67 @@ public class HomeActivity extends AppCompatActivity {
         Toast.makeText(this, "Renamed album to: " + newAlbumName, Toast.LENGTH_SHORT).show();
         adapter.notifyDataSetChanged();
         saveAlbumData();
+    }
+
+    private void showOpenAlbumDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Select an Album to Open");
+
+        // Set up the list view to display album names
+        ListView listView = new ListView(this);
+        ArrayAdapter<Album> albumAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, albums);
+        listView.setAdapter(albumAdapter);
+
+        // Set up the dialog layout
+        builder.setView(listView);
+
+        // Set up the buttons
+        builder.setPositiveButton("Open", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                int selectedPosition = listView.getCheckedItemPosition();
+                if (selectedPosition != ListView.INVALID_POSITION) {
+                    openAlbum(selectedPosition);
+                } else {
+                    Toast.makeText(HomeActivity.this, "Select an album to open", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+
+        // Create the dialog
+        final AlertDialog dialog = builder.create();
+
+        // Set up the item click listener for album selection
+        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                // Close the dialog
+                dialog.dismiss();
+
+                // Perform the open action on the selected album
+                openAlbum(position);
+            }
+        });
+
+        // Show the dialog
+        dialog.show();
+    }
+
+    private void openAlbum(int position) {
+        if (position < albums.size()) {
+            Album selectedAlbum = albums.get(position);
+            Intent intent = new Intent(this, AlbumActivity.class);
+            intent.putExtra("selectedAlbum", selectedAlbum);
+            startActivity(intent);
+        } else {
+            Toast.makeText(this, "Album does not exist", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void saveAlbumData() {

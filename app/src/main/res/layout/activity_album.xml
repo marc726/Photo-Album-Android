@@ -5,10 +5,18 @@
     android:layout_height="match_parent"
     tools:context=".AlbumActivity">
 
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="?attr/colorPrimary"/>
+
     <ListView
         android:id="@+id/photoListView"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="wrap_content"
+        android:layout_below="@id/toolbar"
+        android:layout_marginTop="0dp" />
 
     <!-- Add UI components for additional features as needed -->
 
