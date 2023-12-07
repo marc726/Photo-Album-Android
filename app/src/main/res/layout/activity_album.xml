@@ -1,4 +1,5 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -21,17 +22,36 @@
         android:layout_below="@id/toolbar"
         android:layout_marginTop="0dp" />
 
+    <!-- Add UI components for additional features as needed -->
+
     <Button
         android:id="@+id/button2"
-        android:buttonTint="@color/black"
         android:layout_width="wrap_content"
         android:layout_height="64dp"
         android:background="#FFFFFF"
+        android:buttonTint="@color/black"
         android:text="Back"
-        android:textSize="20sp"
-        android:textColor="@color/black" />
+        android:textColor="@color/black"
+        android:textSize="20sp" />
 
-    <!-- Add UI components for additional features as needed -->
+    <Button
+        android:id="@+id/button3"
+        android:layout_width="wrap_content"
+        android:layout_height="64dp"
+        android:background="#FFFFFF"
+        android:textSize="20sp"
+        android:textColor="@color/black"
+        android:layout_alignParentRight="true"
+        android:text="SlideShow" />
+
+    <com.google.android.material.floatingactionbutton.FloatingActionButton
+        android:id="@+id/floatingActionButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:clickable="true"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentBottom="true"
+        app:srcCompat="@android:drawable/ic_input_add" />
 
 </RelativeLayout>
 
