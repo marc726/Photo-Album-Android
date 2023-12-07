@@ -30,22 +30,24 @@ import androidx.appcompat.widget.Toolbar;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.util.List;
 import java.util.ArrayList;
 
 public class AlbumActivity extends AppCompatActivity {
 
 
-
+    private ArrayAdapter<Photo> adapter;  // Field to store the adapter
     private Album selectedAlbum;
     private List<Photo> photos;
     private int currentPhotoIndex = 0;
-
     private ImageView photoImageView;
     private Button slideshowButton;
-
     private ActivityResultLauncher<Intent> mStartForResult;
-
     private static final int REQUEST_IMAGE_GET = 1;
     private ImageView imageView; // Assuming you have an ImageView to display the photo
     private Album currentAlbum;  // Assuming you have an Album object to add the photo to
@@ -57,8 +59,12 @@ public class AlbumActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_album);
 
-        // Retrieve the selected album from the intent
-        selectedAlbum = (Album) getIntent().getSerializableExtra("selectedAlbum");
+        // Load the album data
+        selectedAlbum = loadAlbumData();
+        if (selectedAlbum == null) {
+            // Handle the case where no saved data is found
+            selectedAlbum = new Album("Default"); // Replace with appropriate default
+        }
         photos = selectedAlbum.getPhotos();
 
         // Set up the UI components
@@ -98,17 +104,16 @@ public class AlbumActivity extends AppCompatActivity {
         mStartForResult = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
             if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
                 Uri fullPhotoUri = result.getData().getData();
-                // Handle the returned URI (e.g., display it or add it to an album)
+                addPhotoToAlbum(fullPhotoUri);  // This now correctly adds the photo to the displayed album
             }
         });
     }
 
     private void setupUI() {
         ListView listView = findViewById(R.id.photoListView);
-        photoImageView = findViewById(R.id.photoImageView);
 
-        // Create an ArrayAdapter for the ListView
-        ArrayAdapter<Photo> adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, photos);
+        // Initialize the adapter
+        adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, photos);
         listView.setAdapter(adapter);
 
         // Set item click listener for photo selection
@@ -119,6 +124,7 @@ public class AlbumActivity extends AppCompatActivity {
             }
         });
     }
+
 
     private void displayPhotos() {
         if (!photos.isEmpty()) {
@@ -203,11 +209,10 @@ public class AlbumActivity extends AppCompatActivity {
         if (requestCode == REQUEST_IMAGE_GET && resultCode == RESULT_OK) {
             Uri fullPhotoUri = data.getData();
 
-            // Display the photo in an ImageView (imageView)
-            displayPhoto(fullPhotoUri);
-
             // Add the photo to the current album
             addPhotoToAlbum(fullPhotoUri);
+
+            adapter.notifyDataSetChanged();
         }
     }
 
@@ -255,15 +260,16 @@ public class AlbumActivity extends AppCompatActivity {
 
     private void addPhotoToAlbum(Uri photoUri) {
         if (currentAlbum != null) {
-            // Create a new Photo object
             Photo photo = new Photo();
-            photo.setImagePath(photoUri.toString()); // Convert Uri to String and set it
+            photo.setImagePath(photoUri.toString());  // Convert Uri to String and set it
+            currentAlbum.addPhoto(photo);  // currentAlbum should now be the same as selectedAlbum
 
-            // Add the photo to the album
-            currentAlbum.addPhoto(photo);
-
-            // TODO: Update UI if necessary and save changes to persistent storage
+            adapter.notifyDataSetChanged();  // Notify the adapter
         }
+
+        saveAlbumData(); // Save changes
+
+
     }
 
     private void movePhotoToAlbum(String albumName) {
@@ -275,6 +281,33 @@ public class AlbumActivity extends AppCompatActivity {
         // TODO: Implement the logic to delete the current photo from the album
         // This involves identifying the current photo and removing it
     }
+
+    private void saveAlbumData() {
+        try {
+            FileOutputStream fos = openFileOutput("album_data.dat", MODE_PRIVATE);
+            ObjectOutputStream oos = new ObjectOutputStream(fos);
+            oos.writeObject(selectedAlbum); // Assuming selectedAlbum contains all the necessary data
+            oos.close();
+            fos.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private Album loadAlbumData() {
+        Album album = null;
+        try {
+            FileInputStream fis = openFileInput("album_data.dat");
+            ObjectInputStream ois = new ObjectInputStream(fis);
+            album = (Album) ois.readObject();
+            ois.close();
+            fis.close();
+        } catch (IOException | ClassNotFoundException e) {
+            e.printStackTrace();
+        }
+        return album;
+    }
+
 
 
 }
