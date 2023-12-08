@@ -1,20 +1,18 @@
 package com.example.android38;
 
-import android.app.Activity;
-import android.content.DialogInterface;
+import android.content.ContentResolver;
+import android.content.ContentUris;
 import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.MediaStore;
-import android.view.MenuItem;
 import android.view.View;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.PopupMenu;
-import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -35,13 +33,12 @@ import java.util.List;
 
 public class AlbumActivity extends AppCompatActivity {
 
-    private ArrayAdapter<Photo> adapter;
     private Album selectedAlbum;
     private List<Photo> photos;
     private int currentPhotoIndex = 0;
     private ActivityResultLauncher<Intent> mStartForResult;
     private static final int REQUEST_IMAGE_GET = 1;
-    private AlbumCollection albumCollection;
+    private ImageView photoImageView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,7 +48,7 @@ public class AlbumActivity extends AppCompatActivity {
         String albumName = getIntent().getStringExtra("ALBUM_NAME");
 
         // Load or create the AlbumCollection
-        albumCollection = loadAlbumCollection();
+        AlbumCollection albumCollection = loadAlbumCollection();
 
         // Find the selected album in the collection or create a new one
         selectedAlbum = albumCollection.findAlbumByName(albumName);
@@ -84,15 +81,16 @@ public class AlbumActivity extends AppCompatActivity {
         // Set up result launcher for photo picking
         mStartForResult = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
                 result -> {
-                    if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+                    if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                         Uri fullPhotoUri = result.getData().getData();
+                        assert fullPhotoUri != null;
                         addPhotoToAlbum(fullPhotoUri);
                     }
                 });
     }
 
     private void setupUI() {
-        // No ListView reference needed, as we're using ImageView directly
+        photoImageView = findViewById(R.id.photoListView);
     }
 
     private void displayPhotos() {
@@ -104,16 +102,23 @@ public class AlbumActivity extends AppCompatActivity {
     private void displaySelectedPhoto(int position) {
         if (position >= 0 && position < photos.size()) {
             Photo selectedPhoto = photos.get(position);
-            String imagePath = selectedPhoto.getImagePath();
-
-            // Assuming you have an ImageView with the id "photoListView" in your layout
-            ImageView photoImageView = findViewById(R.id.photoListView);
-
-            // Load and display the image using BitmapFactory
-            Bitmap bitmap = BitmapFactory.decodeFile(imagePath);
+            Uri photoUri = Uri.parse(selectedPhoto.getImagePath());
+            Bitmap bitmap = loadThumbnail(photoUri);
             photoImageView.setImageBitmap(bitmap);
         }
     }
+
+    private Bitmap loadThumbnail(Uri uri) {
+        try {
+            ContentResolver resolver = getContentResolver();
+            return resolver.loadThumbnail(uri, new android.util.Size(640, 480), null);
+        } catch (IOException e) {
+            e.printStackTrace();
+            // Handle the exception or return a default Bitmap
+            return null;
+        }
+    }
+
 
     private void startSlideshow() {
         if (!photos.isEmpty()) {
@@ -151,8 +156,9 @@ public class AlbumActivity extends AppCompatActivity {
         Photo photo = new Photo();
         photo.setImagePath(photoUri.toString());
         selectedAlbum.addPhoto(photo);
-        saveAlbumCollection(albumCollection);
+        saveAlbumCollection(loadAlbumCollection());
         // No need to notify the adapter when using ImageView
+        displayPhotos();
     }
 
     private void showMovePhotoDialog() {
@@ -180,7 +186,7 @@ public class AlbumActivity extends AppCompatActivity {
 
     private List<String> getAllAlbumNames() {
         List<String> albumNames = new ArrayList<>();
-        for (Album album : albumCollection.getAlbums()) {
+        for (Album album : loadAlbumCollection().getAlbums()) {
             albumNames.add(album.getAlbumName());
         }
         return albumNames;
