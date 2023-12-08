@@ -3,14 +3,20 @@ package com.example.android38;
 import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.Intent;
+import android.content.res.Resources;
 import android.database.Cursor;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
+import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.PopupMenu;
 
@@ -19,15 +25,17 @@ import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.example.android38.AlbumCollection;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.io.File;
+import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,7 +46,7 @@ public class AlbumActivity extends AppCompatActivity {
     private int currentPhotoIndex = 0;
     private ActivityResultLauncher<Intent> mStartForResult;
     private static final int REQUEST_IMAGE_GET = 1;
-    private ImageView photoImageView;
+    private GridLayout photoGridView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -90,34 +98,50 @@ public class AlbumActivity extends AppCompatActivity {
     }
 
     private void setupUI() {
-        photoImageView = findViewById(R.id.photoListView);
+        photoGridView = findViewById(R.id.photoGridView);
     }
 
     private void displayPhotos() {
-        if (!photos.isEmpty()) {
-            displaySelectedPhoto(currentPhotoIndex);
-        }
-    }
+        photoGridView.removeAllViews();
+        int column = 2;  // Set the number of columns to 2
+        int total = photos.size();
+        int rows = (int) Math.ceil((double) total / column);
+        photoGridView.setRowCount(rows);
 
-    private void displaySelectedPhoto(int position) {
-        if (position >= 0 && position < photos.size()) {
-            Photo selectedPhoto = photos.get(position);
+        int screenWidth = Resources.getSystem().getDisplayMetrics().widthPixels;
+        int imageWidth = screenWidth / column; // Calculate the width for each image
+
+        for (int i = 0; i < total; i++) {
+            ImageView imageView = new ImageView(this);
+            GridLayout.LayoutParams params = new GridLayout.LayoutParams();
+            params.width = imageWidth;
+            params.height = imageWidth; // You might want to adjust this for your desired aspect ratio
+
+            params.setGravity(Gravity.CENTER);
+            params.columnSpec = GridLayout.spec(i % column);
+            params.rowSpec = GridLayout.spec(i / column);
+            imageView.setLayoutParams(params);
+
+            imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            imageView.setPadding(0, 0, 0, 0); // Set padding to 0 for flush photos
+
+            // Load and set the image for each photo
+            Photo selectedPhoto = photos.get(i);
             Uri photoUri = Uri.parse(selectedPhoto.getImagePath());
-            Bitmap bitmap = loadThumbnail(photoUri);
-            photoImageView.setImageBitmap(bitmap);
+            Bitmap bitmap = loadThumbnail(photoUri, imageWidth, imageWidth); // Ensure you pass the new dimensions to the loading method
+            if (bitmap != null) {
+                imageView.setImageBitmap(bitmap);
+            }
+
+            imageView.setOnClickListener(v -> {
+                // Handle displaying photo details
+            });
+
+            photoGridView.addView(imageView);
         }
     }
 
-    private Bitmap loadThumbnail(Uri uri) {
-        try {
-            ContentResolver resolver = getContentResolver();
-            return resolver.loadThumbnail(uri, new android.util.Size(640, 480), null);
-        } catch (IOException e) {
-            e.printStackTrace();
-            // Handle the exception or return a default Bitmap
-            return null;
-        }
-    }
+
 
 
     private void startSlideshow() {
@@ -126,6 +150,45 @@ public class AlbumActivity extends AppCompatActivity {
             displaySelectedPhoto(currentPhotoIndex);
         }
     }
+
+    private void displaySelectedPhoto(int position) {
+        if (position >= 0 && position < photos.size()) {
+            Photo selectedPhoto = photos.get(position);
+            Uri photoUri = Uri.parse(selectedPhoto.getImagePath());
+
+            ImageView imageView = new ImageView(this);
+            GridLayout.LayoutParams params = new GridLayout.LayoutParams();
+
+            int screenWidth = getResources().getDisplayMetrics().widthPixels;
+            int imageWidth = screenWidth / 2; // To make it two images per row
+            params.width = imageWidth;
+            params.height = imageWidth; // This assumes a square aspect ratio
+
+            params.columnSpec = GridLayout.spec(position % 2);
+            params.rowSpec = GridLayout.spec(position / 2);
+            imageView.setLayoutParams(params);
+
+            imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            imageView.setPadding(0, 0, 0, 0); // Adjust padding as needed
+
+            // Load and set the image for the selected photo
+            Bitmap bitmap = loadThumbnail(photoUri, imageWidth, imageWidth); // Now passing width and height
+            if (bitmap != null) {
+                imageView.setImageBitmap(bitmap);
+            }
+
+            // Add click listener to view photo details or implement your logic
+            imageView.setOnClickListener(v -> {
+                // Handle displaying photo details
+            });
+
+            photoGridView.addView(imageView);
+        }
+    }
+
+
+
+
 
     private void showPopupMenu(View view) {
         PopupMenu popupMenu = new PopupMenu(this, view);
@@ -154,11 +217,44 @@ public class AlbumActivity extends AppCompatActivity {
 
     private void addPhotoToAlbum(Uri photoUri) {
         Photo photo = new Photo();
+
+        // Check if the Uri is a content Uri
+        if ("content".equals(photoUri.getScheme())) {
+            // If the Uri is a content Uri, create a copy of the image in the app's internal storage
+            photoUri = saveImageToInternalStorage(photoUri);
+        }
+
         photo.setImagePath(photoUri.toString());
         selectedAlbum.addPhoto(photo);
         saveAlbumCollection(loadAlbumCollection());
         // No need to notify the adapter when using ImageView
         displayPhotos();
+    }
+
+    private Uri saveImageToInternalStorage(Uri sourceUri) {
+        // Create a new file in the internal storage
+        String fileName = "image_" + System.currentTimeMillis() + ".png";
+        File internalFile = new File(getFilesDir(), fileName);
+
+        try (InputStream inputStream = getContentResolver().openInputStream(sourceUri);
+             OutputStream outputStream = new FileOutputStream(internalFile)) {
+            if (inputStream != null) {
+                // Copy the image data from the source Uri to the internal file
+                byte[] buffer = new byte[1024];
+                int bytesRead;
+                while ((bytesRead = inputStream.read(buffer)) != -1) {
+                    outputStream.write(buffer, 0, bytesRead);
+                }
+
+                // Return the Uri of the internal file
+                return Uri.fromFile(internalFile);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // Return the original Uri if an error occurred
+        return sourceUri;
     }
 
     private void showMovePhotoDialog() {
@@ -211,6 +307,40 @@ public class AlbumActivity extends AppCompatActivity {
         }
         return new AlbumCollection();
     }
+
+    private Bitmap loadThumbnail(Uri uri, int targetW, int targetH) {
+        try {
+            ContentResolver resolver = getContentResolver();
+            ParcelFileDescriptor parcelFileDescriptor = resolver.openFileDescriptor(uri, "r");
+            if (parcelFileDescriptor != null) {
+                FileDescriptor fileDescriptor = parcelFileDescriptor.getFileDescriptor();
+
+                // Get the dimensions of the bitmap
+                BitmapFactory.Options bmOptions = new BitmapFactory.Options();
+                bmOptions.inJustDecodeBounds = true;
+                BitmapFactory.decodeFileDescriptor(fileDescriptor, null, bmOptions);
+                int photoW = bmOptions.outWidth;
+                int photoH = bmOptions.outHeight;
+
+                // Determine how much to scale down the image
+                int scaleFactor = Math.max(1, Math.min(photoW/targetW, photoH/targetH));
+
+                // Set inSampleSize to scale down the image
+                bmOptions.inJustDecodeBounds = false;
+                bmOptions.inSampleSize = scaleFactor;
+
+                Bitmap image = BitmapFactory.decodeFileDescriptor(fileDescriptor, null, bmOptions);
+                parcelFileDescriptor.close();
+                return Bitmap.createScaledBitmap(image, targetW, targetH, false);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+
+
 
     private void saveAlbumCollection(AlbumCollection albumCollection) {
         File file = new File(getFilesDir(), "data.dat");

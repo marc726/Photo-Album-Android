@@ -9,50 +9,47 @@
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="#2B2B2B"> <!-- Set the background color to grayish black -->
+        android:background="#2B2B2B">
 
-        <!-- You can add other customizations to the Toolbar as needed -->
+        <Button
+            android:id="@+id/button2"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:background="?attr/selectableItemBackground"
+            android:text="Back"
+            android:textColor="@android:color/white" />
 
+        <Button
+            android:id="@+id/button3"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:background="?attr/selectableItemBackground"
+            android:text="SlideShow"
+            android:textColor="@android:color/white" />
     </androidx.appcompat.widget.Toolbar>
 
-
-
-    <ImageView
-        android:id="@+id/photoListView"
+    <GridLayout
+        android:id="@+id/photoGridView"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:layout_below="@id/toolbar"
-        android:layout_marginTop="10dp" />
+        android:columnCount="2"
+        android:orientation="horizontal"
+        android:padding="0dp"
+        android:layout_above="@+id/floatingActionButton">
+    </GridLayout>
 
-
-    <Button
-        android:id="@+id/button2"
-        android:layout_width="wrap_content"
-        android:layout_height="64dp"
-        android:background="#FFFFFF"
-        android:buttonTint="@color/black"
-        android:text="Back"
-        android:textColor="@color/black"
-        android:textSize="20sp" />
-
-    <Button
-        android:id="@+id/button3"
-        android:layout_width="wrap_content"
-        android:layout_height="64dp"
-        android:background="#FFFFFF"
-        android:textSize="20sp"
-        android:textColor="@color/black"
-        android:layout_alignParentRight="true"
-        android:text="SlideShow" />
 
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/floatingActionButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:clickable="true"
-        android:layout_alignParentRight="true"
         android:layout_alignParentBottom="true"
+        android:layout_alignParentLeft="true"
+        android:layout_marginBottom="16dp"
+        android:layout_marginLeft="16dp"
+        android:clickable="true"
         app:srcCompat="@android:drawable/ic_input_add" />
-
 </RelativeLayout>
+
 
