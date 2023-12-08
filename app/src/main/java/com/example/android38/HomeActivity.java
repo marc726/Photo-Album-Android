@@ -28,6 +28,8 @@ public class HomeActivity extends AppCompatActivity {
 
     private List<Album> albums;
     private ArrayAdapter<Album> adapter;
+    private AlbumCollection albumCollection;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -81,33 +83,34 @@ public class HomeActivity extends AppCompatActivity {
         File file = new File(getFilesDir(), "data.dat");
         if (file.exists()) {
             try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
-                albums = (List<Album>) ois.readObject();
+                albumCollection = (AlbumCollection) ois.readObject();
             } catch (IOException | ClassNotFoundException e) {
                 e.printStackTrace();
             }
-        } else {
-            albums = new ArrayList<>();
+        }
+        if (albumCollection == null) {
+            albumCollection = new AlbumCollection();
         }
     }
 
+
     private void displayAlbumList() {
         ListView listView = findViewById(R.id.albumListView);
-
-        // Create an ArrayAdapter for the ListView
-        adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, albums);
+        adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, albumCollection.getAlbums());
         listView.setAdapter(adapter);
-
-        // Enable multiple item selection
         listView.setChoiceMode(ListView.CHOICE_MODE_SINGLE);
     }
 
+
     private void showCreateAlbumDialog() {
+        AlbumCollection albumCollection = loadAlbumCollection(); // Load the album collection
+        List<Album> albumList = albumCollection.getAlbums();
+
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Select an Album or Create New Album");
 
-        // Set up the list view to display album names
+        ArrayAdapter<Album> albumAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, albumList);
         ListView listView = new ListView(this);
-        ArrayAdapter<Album> albumAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, albums);
         listView.setAdapter(albumAdapter);
 
         // Set up the dialog layout
@@ -176,17 +179,18 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private void createAlbum(String albumName) {
-        for (Album album : albums) {
+        for (Album album : albumCollection.getAlbums()) {
             if (album.getAlbumName().equalsIgnoreCase(albumName)) {
                 Toast.makeText(this, "Album with the same name already exists", Toast.LENGTH_SHORT).show();
                 return;
             }
         }
         Album newAlbum = new Album(albumName);
-        albums.add(newAlbum);
+        albumCollection.addAlbum(newAlbum);
         adapter.notifyDataSetChanged();
-        saveAlbumData();
+        saveAlbumData(albumCollection);
     }
+
 
     private void showDeleteAlbumDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
@@ -243,16 +247,18 @@ public class HomeActivity extends AppCompatActivity {
         Album deletedAlbum = albums.remove(position);
         Toast.makeText(this, "Deleted album: " + deletedAlbum.getAlbumName(), Toast.LENGTH_SHORT).show();
         adapter.notifyDataSetChanged();
-        saveAlbumData();
+        saveAlbumData(albumCollection);
     }
 
     private void showRenameAlbumDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Select an Album to Rename");
 
-        // Set up the list view to display album names
+        AlbumCollection albumCollection = loadAlbumCollection(); // Load the album collection
+        List<Album> albumList = albumCollection.getAlbums();
+
+        ArrayAdapter<Album> albumAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, albumList);
         ListView listView = new ListView(this);
-        ArrayAdapter<Album> albumAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, albums);
         listView.setAdapter(albumAdapter);
 
         // Set up the dialog layout
@@ -263,13 +269,14 @@ public class HomeActivity extends AppCompatActivity {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 int selectedPosition = listView.getCheckedItemPosition();
-                if (selectedPosition != ListView.INVALID_POSITION) {
+                if (selectedPosition != ListView.INVALID_POSITION && selectedPosition < albumList.size()) {
                     showRenameDialog(selectedPosition);
                 } else {
                     Toast.makeText(HomeActivity.this, "Select an album to rename", Toast.LENGTH_SHORT).show();
                 }
             }
         });
+
         builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
@@ -325,21 +332,37 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private void renameAlbum(int position, String newAlbumName) {
-        // Implement logic to rename the selected album
-        Album albumToRename = albums.get(position);
-        albumToRename.setAlbumName(newAlbumName);
-        Toast.makeText(this, "Renamed album to: " + newAlbumName, Toast.LENGTH_SHORT).show();
-        adapter.notifyDataSetChanged();
-        saveAlbumData();
+        AlbumCollection albumCollection = loadAlbumCollection(); // Load the album collection
+        List<Album> albumList = albumCollection.getAlbums();
+
+        if (position >= 0 && position < albumList.size()) {
+            Album albumToRename = albumList.get(position);
+            albumToRename.setAlbumName(newAlbumName);
+
+
+            adapter.clear();
+            adapter.clear();
+            adapter.addAll(albumList);
+            adapter.notifyDataSetChanged();
+
+            saveAlbumData(albumCollection); // Save the updated collection
+
+            Toast.makeText(this, "Renamed album to: " + newAlbumName, Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(this, "Invalid album selection", Toast.LENGTH_SHORT).show();
+        }
     }
+
 
     private void showOpenAlbumDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Select an Album to Open");
 
-        // Set up the list view to display album names
+        AlbumCollection albumCollection = loadAlbumCollection(); // Load the album collection
+        List<Album> albumList = albumCollection.getAlbums();
+
+        ArrayAdapter<Album> albumAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, albumList);
         ListView listView = new ListView(this);
-        ArrayAdapter<Album> albumAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, albums);
         listView.setAdapter(albumAdapter);
 
         // Set up the dialog layout
@@ -384,8 +407,8 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private void openAlbum(int position) {
-        if (position < albums.size()) {
-            Album selectedAlbum = albums.get(position);
+        if (position < albumCollection.getAlbums().size()) {
+            Album selectedAlbum = albumCollection.getAlbums().get(position);
             Intent intent = new Intent(this, AlbumActivity.class);
             intent.putExtra("selectedAlbum", selectedAlbum);
             startActivity(intent);
@@ -394,12 +417,38 @@ public class HomeActivity extends AppCompatActivity {
         }
     }
 
-    private void saveAlbumData() {
+
+    private void saveAlbumData(AlbumCollection albumCollection) {
         File file = new File(getFilesDir(), "data.dat");
         try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file))) {
-            oos.writeObject(albums);
+            oos.writeObject(albumCollection);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
+
+    private AlbumCollection loadAlbumCollection() {
+        File file = new File(getFilesDir(), "data.dat");
+        AlbumCollection albumCollection = null;
+
+        if (file.exists()) {
+            try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
+                Object data = ois.readObject();
+                if (data instanceof AlbumCollection) {
+                    albumCollection = (AlbumCollection) data;
+                } else {
+                    albumCollection = new AlbumCollection(); // Create a new collection if the data is not an AlbumCollection
+                }
+            } catch (IOException | ClassNotFoundException e) {
+                e.printStackTrace();
+                albumCollection = new AlbumCollection(); // Create a new collection if an exception occurs
+            }
+        } else {
+            albumCollection = new AlbumCollection(); // Create a new collection if the file does not exist
+        }
+
+        return albumCollection;
+    }
+
+
 }

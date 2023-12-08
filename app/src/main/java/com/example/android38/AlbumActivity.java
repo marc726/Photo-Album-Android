@@ -30,6 +30,7 @@ import androidx.appcompat.widget.Toolbar;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -59,13 +60,18 @@ public class AlbumActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_album);
 
-        // Load the album data
-        selectedAlbum = loadAlbumData();
-        if (selectedAlbum == null) {
-            // Handle the case where no saved data is found
-            selectedAlbum = new Album("Default"); // Replace with appropriate default
+        String albumName = getIntent().getStringExtra("ALBUM_NAME");
+
+        if (albumName != null) {
+            selectedAlbum = loadAlbumData(albumName);
         }
+
+        if (selectedAlbum == null) {
+            selectedAlbum = new Album(albumName != null ? albumName : "Default");
+        }
+
         photos = selectedAlbum.getPhotos();
+        currentAlbum = selectedAlbum; // Ensuring currentAlbum and selectedAlbum are the same
 
         // Set up the UI components
         setupUI();
@@ -259,17 +265,32 @@ public class AlbumActivity extends AppCompatActivity {
     }
 
     private void addPhotoToAlbum(Uri photoUri) {
-        if (currentAlbum != null) {
-            Photo photo = new Photo();
-            photo.setImagePath(photoUri.toString());  // Convert Uri to String and set it
-            currentAlbum.addPhoto(photo);  // currentAlbum should now be the same as selectedAlbum
+        // Assuming you have a method to load the entire AlbumCollection
+        AlbumCollection allAlbums = loadAlbumCollection();
 
-            adapter.notifyDataSetChanged();  // Notify the adapter
+        // Find the selected album in the collection and update it
+        for (Album album : allAlbums.getAlbums()) {
+            if (album.getAlbumName().equals(selectedAlbum.getAlbumName())) {
+                Photo photo = new Photo();
+                photo.setImagePath(photoUri.toString());
+                album.addPhoto(photo); // Update the album in the collection
+                break;
+            }
         }
 
-        saveAlbumData(); // Save changes
+        adapter.notifyDataSetChanged();
 
+        // Save the updated AlbumCollection
+        saveAlbumData(allAlbums);
+    }
 
+    private Album findAlbumByName(AlbumCollection collection, String name) {
+        for (Album album : collection.getAlbums()) {
+            if (album.getAlbumName().equals(name)) {
+                return album;
+            }
+        }
+        return null;
     }
 
     private void movePhotoToAlbum(String albumName) {
@@ -282,30 +303,52 @@ public class AlbumActivity extends AppCompatActivity {
         // This involves identifying the current photo and removing it
     }
 
-    private void saveAlbumData() {
-        try {
-            FileOutputStream fos = openFileOutput("album_data.dat", MODE_PRIVATE);
-            ObjectOutputStream oos = new ObjectOutputStream(fos);
-            oos.writeObject(selectedAlbum); // Assuming selectedAlbum contains all the necessary data
-            oos.close();
-            fos.close();
+    private void saveAlbumData(AlbumCollection albumCollection) {
+        File file = new File(getFilesDir(), "data.dat");
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file))) {
+            oos.writeObject(albumCollection);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-    private Album loadAlbumData() {
-        Album album = null;
-        try {
-            FileInputStream fis = openFileInput("album_data.dat");
-            ObjectInputStream ois = new ObjectInputStream(fis);
-            album = (Album) ois.readObject();
-            ois.close();
-            fis.close();
-        } catch (IOException | ClassNotFoundException e) {
-            e.printStackTrace();
+
+    private Album loadAlbumData(String albumName) {
+        File file = new File(getFilesDir(), "data.dat");
+        AlbumCollection albumCollection;
+
+        // Load the AlbumCollection from the file
+        if (file.exists()) {
+            try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
+                albumCollection = (AlbumCollection) ois.readObject();
+            } catch (IOException | ClassNotFoundException e) {
+                e.printStackTrace();
+                return null;  // Return null or handle the error as appropriate
+            }
+        } else {
+            return null;  // File doesn't exist, no albums to load
         }
-        return album;
+
+        // Search for the album with the given name
+        for (Album album : albumCollection.getAlbums()) {
+            if (album.getAlbumName().equals(albumName)) {
+                return album;
+            }
+        }
+
+        return null; // Album not found, return null or create a new album as needed
+    }
+
+    private AlbumCollection loadAlbumCollection() {
+        File file = new File(getFilesDir(), "data.dat");
+        if (file.exists()) {
+            try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
+                return (AlbumCollection) ois.readObject();
+            } catch (IOException | ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+        }
+        return new AlbumCollection(); // Return a new collection if none exists
     }
 
 
