@@ -138,6 +138,7 @@ public class AlbumActivity extends AppCompatActivity {
             });
 
             photoGridView.addView(imageView);
+            photoGridView.requestLayout();
         }
     }
 
@@ -339,6 +340,71 @@ public class AlbumActivity extends AppCompatActivity {
         return null;
     }
 
+    private void showPhotoActionDialog(boolean isDeleteAction) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle(isDeleteAction ? "Delete Photo" : "Move Photo");
+
+        // Convert the photo file paths or names into a CharSequence array for the dialog
+        CharSequence[] photoNames = new CharSequence[photos.size()];
+        for (int i = 0; i < photos.size(); i++) {
+            photoNames[i] = new File(photos.get(i).getImagePath()).getName();
+        }
+
+        builder.setItems(photoNames, (dialog, which) -> {
+            if (isDeleteAction) {
+                deletePhoto(which);
+            } else {
+                showMoveAlbumSelectionDialog(which);
+            }
+        });
+
+        builder.setNegativeButton("Cancel", null);
+        AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+
+    private void showMoveAlbumSelectionDialog(int photoIndex) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Select Album to Move Photo To");
+
+        // Assuming you have a method to get all album names
+        List<String> albumNames = getAllAlbumNames();
+        CharSequence[] albums = albumNames.toArray(new CharSequence[0]);
+
+        builder.setItems(albums, (dialog, which) -> movePhotoToAlbum(photoIndex, albumNames.get(which)));
+
+        builder.setNegativeButton("Cancel", null);
+        AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+
+    private void movePhotoToAlbum(int photoIndex, String targetAlbumName) {
+        Photo photo = photos.get(photoIndex);
+        Album targetAlbum = loadAlbumCollection().findAlbumByName(targetAlbumName);
+
+        if (targetAlbum != null && !selectedAlbum.getAlbumName().equals(targetAlbumName)) {
+            // Remove from current album and add to the target album
+            selectedAlbum.getPhotos().remove(photoIndex);
+            targetAlbum.getPhotos().add(photo);
+
+            // Save the updated album collection
+            saveAlbumCollection(loadAlbumCollection());
+
+            // Update UI
+            displayPhotos();
+        }
+    }
+
+    private void deletePhoto(int photoIndex) {
+        // Remove photo from the album
+        photos.remove(photoIndex);
+
+        // Save the updated album collection
+        saveAlbumCollection(loadAlbumCollection());
+
+        // Update UI
+        displayPhotos();
+    }
 
 
 
