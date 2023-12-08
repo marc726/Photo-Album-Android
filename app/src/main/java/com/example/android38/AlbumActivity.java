@@ -3,16 +3,16 @@ package com.example.android38;
 import android.app.Activity;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
-import android.widget.ListView;
 import android.widget.PopupMenu;
 import android.widget.Toast;
 
@@ -92,14 +92,7 @@ public class AlbumActivity extends AppCompatActivity {
     }
 
     private void setupUI() {
-        ListView listView = findViewById(R.id.photoListView);
-
-        // Initialize the adapter
-        adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, photos);
-        listView.setAdapter(adapter);
-
-        // Set item click listener for photo selection
-        listView.setOnItemClickListener((parent, view, position, id) -> displaySelectedPhoto(position));
+        // No ListView reference needed, as we're using ImageView directly
     }
 
     private void displayPhotos() {
@@ -111,7 +104,14 @@ public class AlbumActivity extends AppCompatActivity {
     private void displaySelectedPhoto(int position) {
         if (position >= 0 && position < photos.size()) {
             Photo selectedPhoto = photos.get(position);
-            // Update the ImageView with the selected photo if needed
+            String imagePath = selectedPhoto.getImagePath();
+
+            // Assuming you have an ImageView with the id "photoListView" in your layout
+            ImageView photoImageView = findViewById(R.id.photoListView);
+
+            // Load and display the image using BitmapFactory
+            Bitmap bitmap = BitmapFactory.decodeFile(imagePath);
+            photoImageView.setImageBitmap(bitmap);
         }
     }
 
@@ -152,7 +152,7 @@ public class AlbumActivity extends AppCompatActivity {
         photo.setImagePath(photoUri.toString());
         selectedAlbum.addPhoto(photo);
         saveAlbumCollection(albumCollection);
-        adapter.notifyDataSetChanged();
+        // No need to notify the adapter when using ImageView
     }
 
     private void showMovePhotoDialog() {
