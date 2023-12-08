@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class AlbumCollection implements Serializable {
-    private List<Album> albums = new ArrayList<>();
+    private List<Album> albums;
 
     public AlbumCollection() {
         this.albums = new ArrayList<>();
@@ -16,11 +16,15 @@ public class AlbumCollection implements Serializable {
     }
 
     public List<Album> getAlbums() {
-        if (albums == null) {
-            albums = new ArrayList<>();
-        }
         return albums;
     }
 
-    // Add other necessary methods as needed
+    public Album findAlbumByName(String name) {
+        for (Album album : albums) {
+            if (album.getAlbumName().equals(name)) {
+                return album;
+            }
+        }
+        return null;
+    }
 }

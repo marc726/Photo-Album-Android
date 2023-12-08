@@ -1,8 +1,11 @@
 package com.example.android38;
 
 import android.app.Activity;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
-import com.example.android38.R;
+import android.provider.MediaStore;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
@@ -11,23 +14,14 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.PopupMenu;
-import android.content.Intent;
-import android.net.Uri;
-import android.provider.MediaStore;
-import android.content.DialogInterface;
 import android.widget.Toast;
 
-import androidx.appcompat.app.AlertDialog;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-
-
-
-
-import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.Toolbar;
 
+import com.example.android38.AlbumCollection;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.io.File;
@@ -36,24 +30,18 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.util.List;
 import java.util.ArrayList;
+import java.util.List;
 
 public class AlbumActivity extends AppCompatActivity {
 
-
-    private ArrayAdapter<Photo> adapter;  // Field to store the adapter
+    private ArrayAdapter<Photo> adapter;
     private Album selectedAlbum;
     private List<Photo> photos;
     private int currentPhotoIndex = 0;
-    private ImageView photoImageView;
-    private Button slideshowButton;
     private ActivityResultLauncher<Intent> mStartForResult;
     private static final int REQUEST_IMAGE_GET = 1;
-    private ImageView imageView; // Assuming you have an ImageView to display the photo
-    private Album currentAlbum;  // Assuming you have an Album object to add the photo to
-    private Uri currentPhotoUri;
-
+    private AlbumCollection albumCollection;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -62,16 +50,18 @@ public class AlbumActivity extends AppCompatActivity {
 
         String albumName = getIntent().getStringExtra("ALBUM_NAME");
 
-        if (albumName != null) {
-            selectedAlbum = loadAlbumData(albumName);
-        }
+        // Load or create the AlbumCollection
+        albumCollection = loadAlbumCollection();
 
+        // Find the selected album in the collection or create a new one
+        selectedAlbum = albumCollection.findAlbumByName(albumName);
         if (selectedAlbum == null) {
             selectedAlbum = new Album(albumName != null ? albumName : "Default");
+            albumCollection.addAlbum(selectedAlbum);
+            saveAlbumCollection(albumCollection);
         }
 
         photos = selectedAlbum.getPhotos();
-        currentAlbum = selectedAlbum; // Ensuring currentAlbum and selectedAlbum are the same
 
         // Set up the UI components
         setupUI();
@@ -81,38 +71,24 @@ public class AlbumActivity extends AppCompatActivity {
 
         // Set up the back button
         Button backButton = findViewById(R.id.button2);
-        backButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // Handle the back button click (e.g., navigate back)
-                onBackPressed();
-            }
-        });
+        backButton.setOnClickListener(v -> onBackPressed());
 
         // Set up the slideshow button
-        slideshowButton = findViewById(R.id.button3);
-        slideshowButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                startSlideshow();
-            }
-        });
+        Button slideshowButton = findViewById(R.id.button3);
+        slideshowButton.setOnClickListener(v -> startSlideshow());
 
         // Set up the floating action button
         FloatingActionButton fab = findViewById(R.id.floatingActionButton);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                showPopupMenu(v);
-            }
-        });
+        fab.setOnClickListener(v -> showPopupMenu(v));
 
-        mStartForResult = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
-            if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
-                Uri fullPhotoUri = result.getData().getData();
-                addPhotoToAlbum(fullPhotoUri);  // This now correctly adds the photo to the displayed album
-            }
-        });
+        // Set up result launcher for photo picking
+        mStartForResult = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == Activity.RESULT_OK && result.getData() != null) {
+                        Uri fullPhotoUri = result.getData().getData();
+                        addPhotoToAlbum(fullPhotoUri);
+                    }
+                });
     }
 
     private void setupUI() {
@@ -123,18 +99,11 @@ public class AlbumActivity extends AppCompatActivity {
         listView.setAdapter(adapter);
 
         // Set item click listener for photo selection
-        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                displaySelectedPhoto(position);
-            }
-        });
+        listView.setOnItemClickListener((parent, view, position, id) -> displaySelectedPhoto(position));
     }
-
 
     private void displayPhotos() {
         if (!photos.isEmpty()) {
-            // Display the first photo by default
             displaySelectedPhoto(currentPhotoIndex);
         }
     }
@@ -142,20 +111,13 @@ public class AlbumActivity extends AppCompatActivity {
     private void displaySelectedPhoto(int position) {
         if (position >= 0 && position < photos.size()) {
             Photo selectedPhoto = photos.get(position);
-            // Update the ImageView with the selected photo
-            // You need to implement the logic to load and display the photo using its path or other attributes
-            // For simplicity, I assume the Photo class has a method getImagePath()
-            String imagePath = selectedPhoto.getImagePath();
-            // Load and display the image using an image loading library like Picasso or Glide
-            // Example: Picasso.get().load(new File(imagePath)).into(photoImageView);
+            // Update the ImageView with the selected photo if needed
         }
     }
 
     private void startSlideshow() {
         if (!photos.isEmpty()) {
-            // Start the slideshow by incrementing the currentPhotoIndex
             currentPhotoIndex = (currentPhotoIndex + 1) % photos.size();
-            // Display the next photo
             displaySelectedPhoto(currentPhotoIndex);
         }
     }
@@ -164,62 +126,33 @@ public class AlbumActivity extends AppCompatActivity {
         PopupMenu popupMenu = new PopupMenu(this, view);
         popupMenu.getMenuInflater().inflate(R.menu.photo_actions, popupMenu.getMenu());
 
-        // Set up item click listener
-        popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-            @Override
-            public boolean onMenuItemClick(MenuItem item) {
-
-                if (item.getItemId() == R.id.action_add_photo) {
-                    Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-                    mStartForResult.launch(intent);  // Ensure mStartForResult is initialized
-                    return true;
-                }
-                // Handle item clicks here
-                int itemId = item.getItemId();
-                if (itemId == R.id.action_add_photo) {
-                    // Trigger an intent to open the gallery
-                    // When you want to start the activity for result
-                    Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-                    mStartForResult.launch(intent);
-                    return true;
-                } else if (itemId == R.id.action_move_photo) {
-                    // Show a dialog to select an album to move the photo to
-                    showMovePhotoDialog();
-                    return true;
-                } else if (itemId == R.id.action_delete_photo) {
-                    // Confirm and delete the photo
-                    showDeletePhotoDialog();
-                    return true;
-                } else if (itemId == R.id.action_display_photo) {
-                    // Show the photo in full screen or with more details
-                    if (currentPhotoUri != null) {
-                        displayPhoto(currentPhotoUri);
-                    } else {
-                        // Handle the case where no photo is selected or currentPhotoUri is not set
-                        Toast.makeText(AlbumActivity.this, "No photo selected", Toast.LENGTH_SHORT).show();
-                    }
-                    return true;
-                }
-
-                return false;
+        popupMenu.setOnMenuItemClickListener(item -> {
+            if (item.getItemId() == R.id.action_add_photo) {
+                Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+                mStartForResult.launch(intent);
+                return true;
+            } else if (item.getItemId() == R.id.action_move_photo) {
+                showMovePhotoDialog();
+                return true;
+            } else if (item.getItemId() == R.id.action_delete_photo) {
+                showDeletePhotoDialog();
+                return true;
+            } else if (item.getItemId() == R.id.action_display_photo) {
+                // Handle displaying photo details
+                return true;
             }
+            return false;
         });
 
-        // Show the PopupMenu
         popupMenu.show();
     }
 
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQUEST_IMAGE_GET && resultCode == RESULT_OK) {
-            Uri fullPhotoUri = data.getData();
-
-            // Add the photo to the current album
-            addPhotoToAlbum(fullPhotoUri);
-
-            adapter.notifyDataSetChanged();
-        }
+    private void addPhotoToAlbum(Uri photoUri) {
+        Photo photo = new Photo();
+        photo.setImagePath(photoUri.toString());
+        selectedAlbum.addPhoto(photo);
+        saveAlbumCollection(albumCollection);
+        adapter.notifyDataSetChanged();
     }
 
     private void showMovePhotoDialog() {
@@ -229,12 +162,7 @@ public class AlbumActivity extends AppCompatActivity {
         List<String> allAlbumNames = getAllAlbumNames();
         CharSequence[] albums = allAlbumNames.toArray(new CharSequence[0]);
 
-        builder.setItems(albums, new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                movePhotoToAlbum(allAlbumNames.get(which));
-            }
-        });
+        builder.setItems(albums, (dialog, which) -> movePhotoToAlbum(allAlbumNames.get(which)));
 
         builder.setNegativeButton("Cancel", null);
         AlertDialog dialog = builder.create();
@@ -245,98 +173,25 @@ public class AlbumActivity extends AppCompatActivity {
         new AlertDialog.Builder(this)
                 .setTitle("Delete Photo")
                 .setMessage("Are you sure you want to delete this photo?")
-                .setPositiveButton(android.R.string.yes, (dialog, which) -> {
-                    deletePhoto();
-                })
+                .setPositiveButton(android.R.string.yes, (dialog, which) -> deletePhoto())
                 .setNegativeButton(android.R.string.no, null)
                 .show();
     }
-    private void displayPhoto(Uri photoUri) {
-        if (imageView != null) {
-            imageView.setImageURI(photoUri); // Directly set the Uri of the image to the ImageView
-        }
-    }
 
     private List<String> getAllAlbumNames() {
-        // TODO: Return a list of album names
         List<String> albumNames = new ArrayList<>();
-        // Add logic to populate albumNames based on your data
+        for (Album album : albumCollection.getAlbums()) {
+            albumNames.add(album.getAlbumName());
+        }
         return albumNames;
     }
 
-    private void addPhotoToAlbum(Uri photoUri) {
-        // Assuming you have a method to load the entire AlbumCollection
-        AlbumCollection allAlbums = loadAlbumCollection();
-
-        // Find the selected album in the collection and update it
-        for (Album album : allAlbums.getAlbums()) {
-            if (album.getAlbumName().equals(selectedAlbum.getAlbumName())) {
-                Photo photo = new Photo();
-                photo.setImagePath(photoUri.toString());
-                album.addPhoto(photo); // Update the album in the collection
-                break;
-            }
-        }
-
-        adapter.notifyDataSetChanged();
-
-        // Save the updated AlbumCollection
-        saveAlbumData(allAlbums);
-    }
-
-    private Album findAlbumByName(AlbumCollection collection, String name) {
-        for (Album album : collection.getAlbums()) {
-            if (album.getAlbumName().equals(name)) {
-                return album;
-            }
-        }
-        return null;
-    }
-
     private void movePhotoToAlbum(String albumName) {
-        // TODO: Implement the logic to move the current photo to the selected album
-        // This involves finding the current photo and album, then moving the photo
+        // Implement the logic to move the current photo to the selected album
     }
 
     private void deletePhoto() {
-        // TODO: Implement the logic to delete the current photo from the album
-        // This involves identifying the current photo and removing it
-    }
-
-    private void saveAlbumData(AlbumCollection albumCollection) {
-        File file = new File(getFilesDir(), "data.dat");
-        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file))) {
-            oos.writeObject(albumCollection);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-
-    private Album loadAlbumData(String albumName) {
-        File file = new File(getFilesDir(), "data.dat");
-        AlbumCollection albumCollection;
-
-        // Load the AlbumCollection from the file
-        if (file.exists()) {
-            try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
-                albumCollection = (AlbumCollection) ois.readObject();
-            } catch (IOException | ClassNotFoundException e) {
-                e.printStackTrace();
-                return null;  // Return null or handle the error as appropriate
-            }
-        } else {
-            return null;  // File doesn't exist, no albums to load
-        }
-
-        // Search for the album with the given name
-        for (Album album : albumCollection.getAlbums()) {
-            if (album.getAlbumName().equals(albumName)) {
-                return album;
-            }
-        }
-
-        return null; // Album not found, return null or create a new album as needed
+        // Implement the logic to delete the current photo from the album
     }
 
     private AlbumCollection loadAlbumCollection() {
@@ -348,9 +203,15 @@ public class AlbumActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
         }
-        return new AlbumCollection(); // Return a new collection if none exists
+        return new AlbumCollection();
     }
 
-
-
+    private void saveAlbumCollection(AlbumCollection albumCollection) {
+        File file = new File(getFilesDir(), "data.dat");
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file))) {
+            oos.writeObject(albumCollection);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 }
