@@ -196,7 +196,16 @@ public class HomeActivity extends AppCompatActivity {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Select an Album to Delete");
 
-        // Set up the list view to display album names
+        // Load the album collection
+        AlbumCollection albumCollection = loadAlbumCollection();
+        List<Album> albums = albumCollection.getAlbums(); // Get the list of albums
+
+        // Check if the albums list is not null
+        if (albums == null) {
+            Toast.makeText(this, "No albums to delete", Toast.LENGTH_SHORT).show();
+            return; // Exit the method if there are no albums
+        }
+
         ListView listView = new ListView(this);
         ArrayAdapter<Album> albumAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, albums);
         listView.setAdapter(albumAdapter);
@@ -243,11 +252,23 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private void deleteAlbum(int position) {
-        // Implement logic to delete the selected album
-        Album deletedAlbum = albums.remove(position);
-        Toast.makeText(this, "Deleted album: " + deletedAlbum.getAlbumName(), Toast.LENGTH_SHORT).show();
-        adapter.notifyDataSetChanged();
-        saveAlbumData(albumCollection);
+        AlbumCollection albumCollection = loadAlbumCollection(); // Load the album collection
+        List<Album> albums = albumCollection.getAlbums();
+
+        if (position >= 0 && position < albums.size()) {
+            Album deletedAlbum = albums.remove(position);
+            Toast.makeText(this, "Deleted album: " + deletedAlbum.getAlbumName(), Toast.LENGTH_SHORT).show();
+
+            // Save the updated AlbumCollection
+            saveAlbumData(albumCollection);
+
+            // Update the adapter with the new albums list
+            adapter.clear();
+            adapter.addAll(albums);
+            adapter.notifyDataSetChanged();
+        } else {
+            Toast.makeText(this, "Invalid album selection", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void showRenameAlbumDialog() {
