@@ -431,7 +431,8 @@ public class HomeActivity extends AppCompatActivity {
         if (position < albumCollection.getAlbums().size()) {
             Album selectedAlbum = albumCollection.getAlbums().get(position);
             Intent intent = new Intent(this, AlbumActivity.class);
-            intent.putExtra("selectedAlbum", selectedAlbum);
+            // Pass the album name as a string
+            intent.putExtra("selectedAlbum", selectedAlbum.getAlbumName());
             startActivity(intent);
         } else {
             Toast.makeText(this, "Album does not exist", Toast.LENGTH_SHORT).show();

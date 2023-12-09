@@ -19,6 +19,7 @@ import android.widget.Button;
 import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.PopupMenu;
+import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -53,17 +54,29 @@ public class AlbumActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_album);
 
-        String albumName = getIntent().getStringExtra("ALBUM_NAME");
+        String albumName = getIntent().getStringExtra("selectedAlbum");
 
         // Load or create the AlbumCollection
         AlbumCollection albumCollection = loadAlbumCollection();
 
-        // Find the selected album in the collection or create a new one
+        // Find the selected album in the collection
         selectedAlbum = albumCollection.findAlbumByName(albumName);
+
         if (selectedAlbum == null) {
-            selectedAlbum = new Album(albumName != null ? albumName : "Default");
-            albumCollection.addAlbum(selectedAlbum);
-            saveAlbumCollection(albumCollection);
+            if (albumName != null && !albumName.trim().isEmpty()) {
+                // Handle the case where the album does not exist but the name is provided
+                selectedAlbum = new Album(albumName);
+                albumCollection.addAlbum(selectedAlbum);
+                saveAlbumCollection(albumCollection);
+            } else {
+                // Handle the error appropriately, for example:
+                Toast.makeText(this, "Error: Album name is missing or invalid", Toast.LENGTH_LONG).show();
+                // Optionally redirect the user or close the activity
+                finish(); // Closes the current activity and returns to the previous one
+            }
+        } else {
+            photos = selectedAlbum.getPhotos();
+            // Continue with your existing logic for when the album is found
         }
 
         photos = selectedAlbum.getPhotos();
