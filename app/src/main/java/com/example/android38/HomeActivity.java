@@ -79,6 +79,15 @@ public class HomeActivity extends AppCompatActivity {
         });
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        albumCollection = loadAlbumCollection(); // Reload the album collection
+        adapter.clear();
+        adapter.addAll(albumCollection.getAlbums());
+        adapter.notifyDataSetChanged();
+    }
+
     private void loadAlbumData() {
         File file = new File(getFilesDir(), "data.dat");
         if (file.exists()) {
@@ -96,9 +105,14 @@ public class HomeActivity extends AppCompatActivity {
 
     private void displayAlbumList() {
         ListView listView = findViewById(R.id.albumListView);
-        adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, albumCollection.getAlbums());
-        listView.setAdapter(adapter);
-        listView.setChoiceMode(ListView.CHOICE_MODE_SINGLE);
+        if (adapter == null) {
+            adapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, albumCollection.getAlbums());
+            listView.setAdapter(adapter);
+        } else {
+            adapter.clear();
+            adapter.addAll(albumCollection.getAlbums());
+            adapter.notifyDataSetChanged();
+        }
     }
 
 
@@ -179,6 +193,7 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private void createAlbum(String albumName) {
+        albumCollection = loadAlbumCollection(); // Reload the latest album collection
         for (Album album : albumCollection.getAlbums()) {
             if (album.getAlbumName().equalsIgnoreCase(albumName)) {
                 Toast.makeText(this, "Album with the same name already exists", Toast.LENGTH_SHORT).show();
@@ -187,9 +202,15 @@ public class HomeActivity extends AppCompatActivity {
         }
         Album newAlbum = new Album(albumName);
         albumCollection.addAlbum(newAlbum);
+        saveAlbumData(albumCollection); // Save the updated collection
+
+        // Update the adapter with the new albums list
+        adapter.clear();
+        adapter.addAll(albumCollection.getAlbums());
         adapter.notifyDataSetChanged();
-        saveAlbumData(albumCollection);
     }
+
+
 
 
     private void showDeleteAlbumDialog() {
@@ -256,15 +277,12 @@ public class HomeActivity extends AppCompatActivity {
         List<Album> albums = albumCollection.getAlbums();
 
         if (position >= 0 && position < albums.size()) {
-            Album deletedAlbum = albums.remove(position);
-            Toast.makeText(this, "Deleted album: " + deletedAlbum.getAlbumName(), Toast.LENGTH_SHORT).show();
-
-            // Save the updated AlbumCollection
-            saveAlbumData(albumCollection);
+            albums.remove(position); // Remove the album from the list
+            saveAlbumData(albumCollection); // Save the updated AlbumCollection
 
             // Update the adapter with the new albums list
             adapter.clear();
-            adapter.addAll(albums);
+            adapter.addAll(albumCollection.getAlbums());
             adapter.notifyDataSetChanged();
         } else {
             Toast.makeText(this, "Invalid album selection", Toast.LENGTH_SHORT).show();
@@ -439,6 +457,8 @@ public class HomeActivity extends AppCompatActivity {
         }
     }
 
+    // _________________________________________________________________
+    //                              FILE I/O
 
     private void saveAlbumData(AlbumCollection albumCollection) {
         File file = new File(getFilesDir(), "data.dat");

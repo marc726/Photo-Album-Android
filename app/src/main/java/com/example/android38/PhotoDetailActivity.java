@@ -1,0 +1,287 @@
+package com.example.android38;
+
+import android.app.Activity;
+import android.app.AlertDialog;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.net.Uri;
+import android.os.Bundle;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.Spinner;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import com.example.android38.Photo;
+import com.example.android38.R;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+
+public class PhotoDetailActivity extends Activity {
+
+    private ImageView photoImageView;
+    private TextView tagTextView;
+    private Photo selectedPhoto; // Assuming your Photo class has methods for handling tags
+    private AlbumCollection albumCollection;
+    private String photoUriString;
+
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_photo_detail);
+
+        // Load album collection here or in onResume
+        albumCollection = loadAlbumCollection();
+
+        // Initialize views
+        photoImageView = findViewById(R.id.photoImageView);
+        tagTextView = findViewById(R.id.tagTextView);
+        Button backButton = findViewById(R.id.backButton);
+        Button deleteButton = findViewById(R.id.deleteButton);
+        Button moveButton = findViewById(R.id.moveButton);
+        Button addTagButton = findViewById(R.id.addTagButton);
+        Button removeTagButton = findViewById(R.id.removeTagButton);
+
+        // Load the photo URI from the intent
+        photoUriString = getIntent().getStringExtra("photoUri");
+
+        // Initialize selectedPhoto based on the URI
+        // This should be replaced with your actual logic to find the Photo object by its URI
+        selectedPhoto = findPhotoByUri(photoUriString);
+
+        if (selectedPhoto == null) {
+            Toast.makeText(this, "Photo data not found", Toast.LENGTH_SHORT).show();
+            finish(); // Close the activity if photo data is not available
+            return;
+        }
+
+        // Load and display the photo
+        Uri photoUri = Uri.parse(selectedPhoto.getImagePath());
+        Bitmap bitmap = loadThumbnail(photoUri);
+        if (bitmap != null) {
+            photoImageView.setImageBitmap(bitmap);
+        }
+
+        // Load and display tags
+        updateTagDisplay();
+
+        // Set button functionality
+        backButton.setOnClickListener(v -> finish());
+        deleteButton.setOnClickListener(v -> deletePhoto());
+        moveButton.setOnClickListener(v -> movePhoto());
+        addTagButton.setOnClickListener(v -> addTag());
+        removeTagButton.setOnClickListener(v -> removeTag());
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        // Reload album collection to get updated data
+        albumCollection = loadAlbumCollection();
+        selectedPhoto = findPhotoByUri(photoUriString);
+
+        if (selectedPhoto == null) {
+            Toast.makeText(this, "Photo data not found", Toast.LENGTH_SHORT).show();
+            finish(); // Close the activity if photo data is not available
+            return;
+        }
+
+        // Refresh UI with updated photo data
+        refreshUI();
+    }
+
+    private void refreshUI() {
+        // Load and display the photo and tags
+        Uri photoUri = Uri.parse(selectedPhoto.getImagePath());
+        Bitmap bitmap = loadThumbnail(photoUri);
+        if (bitmap != null) {
+            photoImageView.setImageBitmap(bitmap);
+        }
+        updateTagDisplay();
+    }
+
+    private Photo findPhotoByUri(String photoUriString) {
+        AlbumCollection albumCollection = loadAlbumCollection(); // Assuming you have a method to load your albums
+
+        for (Album album : albumCollection.getAlbums()) {
+            for (Photo photo : album.getPhotos()) {
+                if (photo.getImagePath().equals(photoUriString)) {
+                    return photo;
+                }
+            }
+        }
+
+        return null; // Return null if no matching photo is found
+    }
+
+    private Bitmap loadThumbnail(Uri uri) {
+        try {
+            return BitmapFactory.decodeStream(getContentResolver().openInputStream(uri));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private void deletePhoto() {
+        // Implement the logic to delete the photo
+        Toast.makeText(this, "Delete Photo functionality not implemented", Toast.LENGTH_SHORT).show();
+    }
+
+    private void movePhoto() {
+        // Implement the logic to move the photo to another album
+        Toast.makeText(this, "Move Photo functionality not implemented", Toast.LENGTH_SHORT).show();
+    }
+
+    private void addTag() {
+        LayoutInflater inflater = this.getLayoutInflater();
+        View dialogView = inflater.inflate(R.layout.dialog_add_tag, null);
+
+        final Spinner spinnerTagType = dialogView.findViewById(R.id.spinnerTagType);
+        final EditText editTextTagValue = dialogView.findViewById(R.id.editTextTagValue);
+        final Button buttonConfirm = dialogView.findViewById(R.id.buttonConfirm);
+        final Button buttonCancel = dialogView.findViewById(R.id.buttonCancel);
+
+        editTextTagValue.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                buttonConfirm.setEnabled(!s.toString().trim().isEmpty());
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+            }
+        });
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("Add Tag")
+                .setView(dialogView)
+                .create();
+
+        buttonConfirm.setOnClickListener(v -> {
+            String tagType = spinnerTagType.getSelectedItem().toString();
+            String tagValue = editTextTagValue.getText().toString();
+
+            if (isTagTypeAlreadyPresent(tagType)) {
+                Toast.makeText(PhotoDetailActivity.this, "Error: Tag type \"" + tagType + "\" already exists for this photo.", Toast.LENGTH_LONG).show();
+                return;
+            }
+
+            selectedPhoto.addTag(new Tag(tagType, tagValue));
+            updateSelectedPhotoInAlbumCollection(selectedPhoto); // Ensure the updated photo is in the album collection
+            updateTagDisplay();
+            saveAlbumCollection(albumCollection); // Save changes
+            dialog.dismiss();
+        });
+
+        buttonCancel.setOnClickListener(v -> dialog.dismiss());
+
+        dialog.show();
+
+    }
+
+
+    private void removeTag() {
+        LayoutInflater inflater = this.getLayoutInflater();
+        View dialogView = inflater.inflate(R.layout.dialog_remove_tag, null);
+
+        final Spinner spinnerTag = dialogView.findViewById(R.id.spinnerTag);
+        final Button buttonConfirm = dialogView.findViewById(R.id.buttonConfirm);
+        final Button buttonCancel = dialogView.findViewById(R.id.buttonCancel);
+
+        // Populate the spinner with existing tags
+        ArrayAdapter<Tag> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, selectedPhoto.getTags());
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerTag.setAdapter(adapter);
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle("Remove Tag")
+                .setView(dialogView)
+                .create();
+
+        buttonConfirm.setOnClickListener(v -> {
+            Tag selectedTag = (Tag) spinnerTag.getSelectedItem();
+            selectedPhoto.removeTag(selectedTag); // Remove the selected tag
+            updateSelectedPhotoInAlbumCollection(selectedPhoto); // Ensure the updated photo is in the album collection
+            updateTagDisplay();
+            saveAlbumCollection(albumCollection); // Save changes
+            dialog.dismiss();
+        });
+
+        buttonCancel.setOnClickListener(v -> dialog.dismiss());
+
+        dialog.show();
+    }
+
+
+    private void updateTagDisplay() {
+        StringBuilder tagBuilder = new StringBuilder();
+        for (Tag tag : selectedPhoto.getTags()) {
+            tagBuilder.append(tag.toString()).append(", ");
+        }
+        tagTextView.setText("Tags: " + tagBuilder.toString());
+    }
+
+    private void updateSelectedPhotoInAlbumCollection(Photo updatedPhoto) {
+        for (Album album : albumCollection.getAlbums()) {
+            for (int i = 0; i < album.getPhotos().size(); i++) {
+                if (album.getPhotos().get(i).getImagePath().equals(updatedPhoto.getImagePath())) {
+                    album.getPhotos().set(i, updatedPhoto); // Update the photo in the album
+                    break;
+                }
+            }
+        }
+    }
+
+    private boolean isTagTypeAlreadyPresent(String tagType) {
+        for (Tag tag : selectedPhoto.getTags()) {
+            if (tag.getTagName().equals(tagType)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+
+    // _________________________________________________________________
+    //                              FILE IO
+
+    private void saveAlbumCollection(AlbumCollection albumCollection) {
+        File file = new File(getFilesDir(), "data.dat");
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file))) {
+            oos.writeObject(albumCollection);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private AlbumCollection loadAlbumCollection() {
+        File file = new File(getFilesDir(), "data.dat");
+        if (file.exists()) {
+            try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
+                return (AlbumCollection) ois.readObject();
+            } catch (IOException | ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+        }
+        return new AlbumCollection();
+    }
+
+}

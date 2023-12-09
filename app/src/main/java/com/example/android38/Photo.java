@@ -1,9 +1,9 @@
 package com.example.android38;
 
-import android.nfc.Tag;
-
 import java.io.Serializable;
 import java.util.ArrayList;
+import java.util.Iterator;
+import com.example.android38.Tag;
 
 public class Photo implements Serializable {
     static final long serialVersionUID = 1L;
@@ -36,9 +36,16 @@ public class Photo implements Serializable {
     public void setImagePath(String path) {
         this.imagePath = path;
     }
+
     public void addTag(Tag tag) {
         if (!tags.contains(tag)) {
             tags.add(tag);
         }
     }
+
+    public void removeTag(Tag tag) {
+        tags.remove(tag);
+    }
+
+
 }

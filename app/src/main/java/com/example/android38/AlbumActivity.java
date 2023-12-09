@@ -88,11 +88,11 @@ public class AlbumActivity extends AppCompatActivity {
         displayPhotos();
 
         // Set up the back button
-        Button backButton = findViewById(R.id.button2);
+        Button backButton = findViewById(R.id.backButton);
         backButton.setOnClickListener(v -> onBackPressed());
 
         // Set up the slideshow button
-        Button slideshowButton = findViewById(R.id.button3);
+        Button slideshowButton = findViewById(R.id.slideshowButton);
         slideshowButton.setOnClickListener(v -> startSlideshow());
 
         // Set up the floating action button
@@ -128,7 +128,7 @@ public class AlbumActivity extends AppCompatActivity {
             ImageView imageView = new ImageView(this);
             GridLayout.LayoutParams params = new GridLayout.LayoutParams();
             params.width = imageWidth;
-            params.height = imageWidth; // You might want to adjust this for your desired aspect ratio
+            params.height = imageWidth; // Adjust this for your desired aspect ratio
 
             params.setGravity(Gravity.CENTER);
             params.columnSpec = GridLayout.spec(i % column);
@@ -141,27 +141,28 @@ public class AlbumActivity extends AppCompatActivity {
             // Load and set the image for each photo
             Photo selectedPhoto = photos.get(i);
             Uri photoUri = Uri.parse(selectedPhoto.getImagePath());
-            Bitmap bitmap = loadThumbnail(photoUri, imageWidth, imageWidth); // Ensure you pass the new dimensions to the loading method
+            Bitmap bitmap = loadThumbnail(photoUri, imageWidth, imageWidth);
             if (bitmap != null) {
                 imageView.setImageBitmap(bitmap);
             }
 
-            imageView.setOnClickListener(v -> {
-                // Handle displaying photo details
-            });
+            final int photoIndex = i; // Capture the index for use in the click listener
+            imageView.setOnClickListener(v -> onPhotoSelected(photoIndex)); // Set click listener
 
-            photoGridView.addView(imageView);
-            photoGridView.requestLayout();
+            photoGridView.addView(imageView); // Add imageView to photoGridView
         }
     }
 
 
 
 
+
     private void startSlideshow() {
         if (!photos.isEmpty()) {
-            currentPhotoIndex = (currentPhotoIndex + 1) % photos.size();
-            displaySelectedPhoto(currentPhotoIndex);
+            Intent slideshowIntent = new Intent(this, SlideshowActivity.class);
+            slideshowIntent.putExtra("photos", new ArrayList<>(photos)); // Ensure your Photo class is Serializable
+            slideshowIntent.putExtra("currentPhotoIndex", currentPhotoIndex);
+            startActivity(slideshowIntent);
         }
     }
 
@@ -201,6 +202,16 @@ public class AlbumActivity extends AppCompatActivity {
     }
 
 
+    private void onPhotoSelected(int photoIndex) {
+        Photo selectedPhoto = photos.get(photoIndex);
+        Intent intent = new Intent(this, PhotoDetailActivity.class);
+        intent.putExtra("photoUri", selectedPhoto.getImagePath());
+        // pass tag for photo here
+
+
+        startActivity(intent);
+    }
+
 
 
 
@@ -213,15 +224,6 @@ public class AlbumActivity extends AppCompatActivity {
                 Intent intent = new Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
                 mStartForResult.launch(intent);
                 return true;
-            } else if (item.getItemId() == R.id.action_move_photo) {
-                showMovePhotoDialog();
-                return true;
-            } else if (item.getItemId() == R.id.action_delete_photo) {
-                showDeletePhotoDialog();
-                return true;
-            } else if (item.getItemId() == R.id.action_display_photo) {
-                // Handle displaying photo details
-                return true;
             }
             return false;
         });
@@ -231,6 +233,7 @@ public class AlbumActivity extends AppCompatActivity {
 
     private void addPhotoToAlbum(Uri photoUri) {
         Photo photo = new Photo();
+        AlbumCollection albumCollection = loadAlbumCollection();
 
         // Check if the Uri is a content Uri
         if ("content".equals(photoUri.getScheme())) {
@@ -239,11 +242,26 @@ public class AlbumActivity extends AppCompatActivity {
         }
 
         photo.setImagePath(photoUri.toString());
-        selectedAlbum.addPhoto(photo);
-        saveAlbumCollection(loadAlbumCollection());
-        // No need to notify the adapter when using ImageView
-        displayPhotos();
+
+        // Find the corresponding album in the loaded collection
+        Album albumToUpdate = albumCollection.findAlbumByName(selectedAlbum.getAlbumName());
+        if (albumToUpdate != null) {
+            albumToUpdate.addPhoto(photo);
+            photos = albumToUpdate.getPhotos(); // Update the photos list
+        } else {
+            Toast.makeText(this, "Error: Album not found in the collection", Toast.LENGTH_LONG).show();
+            return;
+        }
+
+        // Save the album collection with the newly added photo
+        saveAlbumCollection(albumCollection);
+
+        // Update UI on the main thread
+        runOnUiThread(this::displayPhotos);
     }
+
+
+
 
     private Uri saveImageToInternalStorage(Uri sourceUri) {
         // Create a new file in the internal storage
@@ -308,18 +326,6 @@ public class AlbumActivity extends AppCompatActivity {
 
     private void deletePhoto() {
         // Implement the logic to delete the current photo from the album
-    }
-
-    private AlbumCollection loadAlbumCollection() {
-        File file = new File(getFilesDir(), "data.dat");
-        if (file.exists()) {
-            try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
-                return (AlbumCollection) ois.readObject();
-            } catch (IOException | ClassNotFoundException e) {
-                e.printStackTrace();
-            }
-        }
-        return new AlbumCollection();
     }
 
     private Bitmap loadThumbnail(Uri uri, int targetW, int targetH) {
@@ -420,6 +426,8 @@ public class AlbumActivity extends AppCompatActivity {
     }
 
 
+    // _________________________________________________________________
+//                              FILE IO
 
     private void saveAlbumCollection(AlbumCollection albumCollection) {
         File file = new File(getFilesDir(), "data.dat");
@@ -428,5 +436,17 @@ public class AlbumActivity extends AppCompatActivity {
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+
+    private AlbumCollection loadAlbumCollection() {
+        File file = new File(getFilesDir(), "data.dat");
+        if (file.exists()) {
+            try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
+                return (AlbumCollection) ois.readObject();
+            } catch (IOException | ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+        }
+        return new AlbumCollection();
     }
 }

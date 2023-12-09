@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -9,47 +10,72 @@
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="#2B2B2B">
+        android:background="#2B2B2B"
+        android:layout_alignParentTop="true"
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp">
 
-        <Button
-            android:id="@+id/button2"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:background="?attr/selectableItemBackground"
-            android:text="Back"
-            android:textColor="@android:color/white" />
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
 
-        <Button
-            android:id="@+id/button3"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:background="?attr/selectableItemBackground"
-            android:text="SlideShow"
-            android:textColor="@android:color/white" />
+            <TextView
+                android:id="@+id/toolbarTitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerInParent="true"
+                android:text="Albums"
+                android:textAppearance="?attr/textAppearanceHeadline6"
+                android:textColor="@android:color/white" />
+
+            <Button
+                android:id="@+id/slideshowButton"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_alignParentEnd="true"
+                android:background="?attr/selectableItemBackground"
+                android:text="Slideshow"
+                android:textColor="@android:color/white" />
+
+            <Button
+                android:id="@+id/backButton"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_alignParentStart="true"
+                android:background="?attr/selectableItemBackground"
+                android:text="Back"
+                android:textColor="@android:color/white" />
+        </RelativeLayout>
     </androidx.appcompat.widget.Toolbar>
 
-    <GridLayout
-        android:id="@+id/photoGridView"
+    <!-- The ScrollView fills all space below the toolbar -->
+    <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_below="@id/toolbar"
-        android:columnCount="2"
-        android:orientation="horizontal"
-        android:padding="0dp"
-        android:layout_above="@+id/floatingActionButton">
-    </GridLayout>
+        android:fillViewport="true">
 
+        <GridLayout
+            android:id="@+id/photoGridView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:columnCount="2"
+            android:orientation="horizontal"
+            android:padding="0dp">
+            <!-- Content of GridLayout -->
+        </GridLayout>
+    </ScrollView>
 
+    <!-- The FloatingActionButton is placed within the RelativeLayout but after ScrollView
+         to ensure it overlaps the ScrollView's content. -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/floatingActionButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:layout_alignParentLeft="true"
+        android:layout_alignParentEnd="true"
         android:layout_marginBottom="16dp"
-        android:layout_marginLeft="16dp"
+        android:layout_marginEnd="16dp"
         android:clickable="true"
         app:srcCompat="@android:drawable/ic_input_add" />
 </RelativeLayout>
-
-
