@@ -16,7 +16,7 @@
     <ImageView
         android:id="@+id/photoImageView"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="400dp"
         android:layout_below="@id/backButton"
         android:adjustViewBounds="true"
         android:scaleType="fitCenter" />

@@ -232,8 +232,8 @@ public class HomeActivity extends AppCompatActivity {
         AlbumCollection albumCollection = loadAlbumCollection();
         List<Album> albums = albumCollection.getAlbums(); // Get the list of albums
 
-        // Check if the albums list is not null
-        if (albums == null) {
+        // Check if the albums list is not empty
+        if (albums.isEmpty()) {
             Toast.makeText(this, "No albums to delete", Toast.LENGTH_SHORT).show();
             return; // Exit the method if there are no albums
         }
@@ -245,18 +245,7 @@ public class HomeActivity extends AppCompatActivity {
         // Set up the dialog layout
         builder.setView(listView);
 
-        // Set up the buttons
-        builder.setPositiveButton("Delete", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                int selectedPosition = listView.getCheckedItemPosition();
-                if (selectedPosition != ListView.INVALID_POSITION) {
-                    deleteAlbum(selectedPosition);
-                } else {
-                    Toast.makeText(HomeActivity.this, "Select an album to delete", Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
+        // Set up the Cancel button
         builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
@@ -271,11 +260,10 @@ public class HomeActivity extends AppCompatActivity {
         listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                // Close the dialog
-                dialog.dismiss();
-
                 // Perform the delete action on the selected album
                 deleteAlbum(position);
+                // Close the dialog
+                dialog.dismiss();
             }
         });
 
@@ -314,19 +302,7 @@ public class HomeActivity extends AppCompatActivity {
         // Set up the dialog layout
         builder.setView(listView);
 
-        // Set up the buttons
-        builder.setPositiveButton("Rename", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                int selectedPosition = listView.getCheckedItemPosition();
-                if (selectedPosition != ListView.INVALID_POSITION && selectedPosition < albumList.size()) {
-                    showRenameDialog(selectedPosition);
-                } else {
-                    Toast.makeText(HomeActivity.this, "Select an album to rename", Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
-
+        // Set up the Cancel button
         builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
@@ -357,12 +333,10 @@ public class HomeActivity extends AppCompatActivity {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Rename Album");
 
-        // Set up the input
         final EditText input = new EditText(this);
         input.setInputType(InputType.TYPE_CLASS_TEXT);
         builder.setView(input);
 
-        // Set up the buttons
         builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
@@ -377,7 +351,6 @@ public class HomeActivity extends AppCompatActivity {
             }
         });
 
-        // Show the dialog
         builder.show();
     }
 
@@ -418,18 +391,7 @@ public class HomeActivity extends AppCompatActivity {
         // Set up the dialog layout
         builder.setView(listView);
 
-        // Set up the buttons
-        builder.setPositiveButton("Open", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                int selectedPosition = listView.getCheckedItemPosition();
-                if (selectedPosition != ListView.INVALID_POSITION) {
-                    openAlbum(selectedPosition);
-                } else {
-                    Toast.makeText(HomeActivity.this, "Select an album to open", Toast.LENGTH_SHORT).show();
-                }
-            }
-        });
+        // Set up the Cancel button
         builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
