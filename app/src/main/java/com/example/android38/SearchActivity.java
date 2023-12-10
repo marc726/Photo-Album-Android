@@ -279,7 +279,6 @@ public class SearchActivity extends AppCompatActivity {
     }
 
 
-
     private AlbumCollection loadAlbumCollection() {
         File file = new File(getFilesDir(), "data.dat");
         if (file.exists()) {
