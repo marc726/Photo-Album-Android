@@ -5,6 +5,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.InputType;
+import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -77,7 +78,90 @@ public class HomeActivity extends AppCompatActivity {
                 showOpenAlbumDialog();
             }
         });
+
+        // Set up the Search button
+        Button searchButton = findViewById(R.id.searchButton);
+        searchButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                showSearchDialog();
+            }
+        });
     }
+
+    private void showSearchDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(HomeActivity.this);
+        builder.setTitle("Search by Tag");
+
+        // Setup the dialog view with two buttons for "Location" and "Person"
+        builder.setItems(new CharSequence[]{"Location", "Person"}, new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                if (which == 0) {
+                    showTagValueInput("Location");
+                } else {
+                    showTagValueInput("Person");
+                }
+            }
+        });
+
+        builder.setNegativeButton("Cancel", null);
+        AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+
+    private void showTagValueInput(final String tagType) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(HomeActivity.this);
+        builder.setTitle("Enter " + tagType + " Tag Value");
+
+        // Setup an EditText view to get user input
+        final EditText input = new EditText(HomeActivity.this);
+        builder.setView(input);
+
+        builder.setPositiveButton("Search", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                String tagValue = input.getText().toString();
+                performSearch(tagType, tagValue);
+            }
+        });
+
+        builder.setNegativeButton("Cancel", null);
+        AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+
+    private void performSearch(String tagType, String tagValue) {
+        ArrayList<Photo> matchingPhotos = new ArrayList<>();
+        String searchTagType = tagType.toLowerCase();
+        String searchTagValue = tagValue.toLowerCase();
+
+        for (Album album : albumCollection.getAlbums()) {
+            for (Photo photo : album.getPhotos()) {
+                for (Tag tag : photo.getTags()) {
+                    String tagTypeName = tag.getTagName().toLowerCase();
+                    String tagVal = tag.getTagValue().toLowerCase();
+
+                    if (tagTypeName.equals(searchTagType) && tagVal.startsWith(searchTagValue)) {
+                        matchingPhotos.add(photo);
+                    }
+                }
+            }
+        }
+
+        if (!matchingPhotos.isEmpty()) {
+            // If there are matching photos, open a new activity to display them
+            Intent intent = new Intent(HomeActivity.this, PhotoDetailActivity.class);
+            intent.putExtra("matchingPhotos", matchingPhotos);
+            startActivity(intent);
+        } else {
+            // Show a message if no matches were found
+            Toast.makeText(HomeActivity.this, "No matching photos found", Toast.LENGTH_LONG).show();
+        }
+    }
+
+
+
 
     @Override
     protected void onResume() {
