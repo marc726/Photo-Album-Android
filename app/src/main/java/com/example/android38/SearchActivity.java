@@ -67,6 +67,7 @@ public class SearchActivity extends AppCompatActivity {
             @Override
             public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 updateAutoCompleteSuggestions(autoCompleteSearchText1, parent.getItemAtPosition(position).toString());
+                uncheckBothCheckBoxes();
             }
 
             @Override
@@ -143,6 +144,13 @@ public class SearchActivity extends AppCompatActivity {
             }
             performSearchIfNeeded();
         });
+    }
+
+    private void uncheckBothCheckBoxes() {
+        checkBoxConjunction.setChecked(false);
+        checkBoxDisjunction.setChecked(false);
+        resetSecondSearchCriteria(); // Hide and reset the second search criteria UI
+        performSearchIfNeeded(); // Perform search again if needed
     }
 
     private boolean shouldPerformSearch() {
