@@ -62,24 +62,55 @@ public class SlideshowActivity extends AppCompatActivity {
     }
 
     private Bitmap loadThumbnail(Uri uri) {
-        Bitmap bitmap = null;
+
+        // Desired dimensions for Nexus 4
+        final int desiredWidth = 384;
+        final int desiredHeight = 640;
+
+
         try {
-            // Get the content resolver
             ContentResolver contentResolver = getContentResolver();
-            // Open an input stream with the URI
             InputStream inputStream = contentResolver.openInputStream(uri);
-            // Decode the input stream into a bitmap
-            bitmap = BitmapFactory.decodeStream(inputStream);
-            // Make sure to close the input stream
-            if (inputStream != null) {
-                inputStream.close();
-            }
+
+            // Get the dimensions of the original bitmap
+            BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inJustDecodeBounds = true;
+            BitmapFactory.decodeStream(inputStream, null, options);
+            inputStream.close();
+
+            // Calculate the inSampleSize value (how much to scale down the image)
+            int inSampleSize = calculateInSampleSize(options, desiredWidth, desiredHeight);
+
+            // Decode the image file into a smaller image to save memory
+            options.inSampleSize = inSampleSize;
+            options.inJustDecodeBounds = false;
+            inputStream = contentResolver.openInputStream(uri);
+            Bitmap scaledBitmap = BitmapFactory.decodeStream(inputStream, null, options);
+            inputStream.close();
+
+            return scaledBitmap;
         } catch (IOException e) {
             e.printStackTrace();
-            // Handle the exception, maybe show a user-friendly message
-            Toast.makeText(this, "Failed to load image", Toast.LENGTH_SHORT).show();
+            return null;
         }
-        return bitmap;
     }
+
+    private int calculateInSampleSize(BitmapFactory.Options options, int reqWidth, int reqHeight) {
+        final int height = options.outHeight;
+        final int width = options.outWidth;
+        int inSampleSize = 1;
+
+        if (height > reqHeight || width > reqWidth) {
+            final int halfHeight = height / 2;
+            final int halfWidth = width / 2;
+
+            while ((halfHeight / inSampleSize) >= reqHeight && (halfWidth / inSampleSize) >= reqWidth) {
+                inSampleSize *= 2;
+            }
+        }
+
+        return inSampleSize;
+    }
+
 
 }
