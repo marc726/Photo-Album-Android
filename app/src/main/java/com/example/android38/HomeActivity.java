@@ -126,58 +126,10 @@ public class HomeActivity extends AppCompatActivity {
 
 
     private void showCreateAlbumDialog() {
-        AlbumCollection albumCollection = loadAlbumCollection(); // Load the album collection
-        List<Album> albumList = albumCollection.getAlbums();
-
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Select an Album or Create New Album");
-
-        ArrayAdapter<Album> albumAdapter = new ArrayAdapter<>(this, android.R.layout.simple_list_item_1, albumList);
-        ListView listView = new ListView(this);
-        listView.setAdapter(albumAdapter);
-
-        // Set up the dialog layout
-        builder.setView(listView);
-
-        // Set up the buttons
-        builder.setPositiveButton("Create New Album", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                showCreateNewAlbumDialog();
-            }
-        });
-        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                dialog.cancel();
-            }
-        });
-
-        // Create the dialog
-        final AlertDialog dialog = builder.create();
-
-        // Set up the item click listener for album selection
-        listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
-            @Override
-            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                // Close the dialog
-                dialog.dismiss();
-
-                // Perform the create action on the selected album
-                Album selectedAlbum = albums.get(position);
-                createAlbum(selectedAlbum.getAlbumName());
-            }
-        });
-
-        // Show the dialog
-        dialog.show();
-    }
-
-    private void showCreateNewAlbumDialog() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Create New Album");
 
-        // Set up the input
+        // Set up the input for the new album name
         final EditText input = new EditText(this);
         input.setInputType(InputType.TYPE_CLASS_TEXT);
         builder.setView(input);
