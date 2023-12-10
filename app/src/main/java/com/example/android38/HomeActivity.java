@@ -5,7 +5,6 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.InputType;
-import android.util.Log;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
@@ -17,13 +16,10 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.nio.file.Files;
-import java.util.ArrayList;
 import java.util.List;
 
 public class HomeActivity extends AppCompatActivity {
@@ -305,25 +301,38 @@ public class HomeActivity extends AppCompatActivity {
     }
 
     private void renameAlbum(int position, String newAlbumName) {
-        AlbumCollection albumCollection = loadAlbumCollection(); // Load the album collection
+        albumCollection = loadAlbumCollection(); // Load the album collection
         List<Album> albumList = albumCollection.getAlbums();
 
         if (position >= 0 && position < albumList.size()) {
             Album albumToRename = albumList.get(position);
+
+            // Check if an album with the new name already exists
+            for (Album album : albumList) {
+                if (album.getAlbumName().equalsIgnoreCase(newAlbumName)) {
+                    Toast.makeText(this, "Album with the same name already exists", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+            }
+
+            String oldAlbumName = albumToRename.getAlbumName();
             albumToRename.setAlbumName(newAlbumName);
 
+            // Save the updated collection
+            saveAlbumData(albumCollection);
+            Toast.makeText(this, "Renamed album from " + oldAlbumName + " to: " + newAlbumName, Toast.LENGTH_SHORT).show();
 
-            adapter.clear();
-            adapter.clear();
-            adapter.addAll(albumList);
-            adapter.notifyDataSetChanged();
-
-            saveAlbumData(albumCollection); // Save the updated collection
-
-            Toast.makeText(this, "Renamed album to: " + newAlbumName, Toast.LENGTH_SHORT).show();
+            // Update the adapter with the new albums list
+            updateAdapterWithAlbums(albumList);
         } else {
             Toast.makeText(this, "Invalid album selection", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private void updateAdapterWithAlbums(List<Album> albumList) {
+        adapter.clear();
+        adapter.addAll(albumList);
+        adapter.notifyDataSetChanged();
     }
 
 
