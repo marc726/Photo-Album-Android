@@ -25,7 +25,9 @@
         </activity>
         <activity android:name=".AlbumActivity" />
         <activity android:name=".PhotoDetailActivity" />
+        <activity android:name=".SearchActivity" />
         <activity android:name=".SlideshowActivity"
+
             android:exported="true"> <!-- or false, depending on your needs -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
