@@ -3,6 +3,8 @@ package com.example.android38;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Objects;
+
 import com.example.android38.Tag;
 
 public class Photo implements Serializable {
@@ -20,6 +22,15 @@ public class Photo implements Serializable {
         this.name = "";
         this.tags = new ArrayList<Tag>();
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Photo photo = (Photo) o;
+        return Objects.equals(imagePath, photo.imagePath); // or any unique identifier
+    }
+
 
     public String getName() {
         return name;

@@ -1,20 +1,17 @@
 package com.example.android38;
 
 import android.content.ContentResolver;
-import android.content.ContentUris;
 import android.content.Intent;
 import android.content.res.Resources;
-import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.GridLayout;
 import android.widget.ImageView;
@@ -23,7 +20,6 @@ import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -37,6 +33,7 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,8 +42,8 @@ public class AlbumActivity extends AppCompatActivity {
     private Album selectedAlbum;
     private List<Photo> photos;
     private int currentPhotoIndex = 0;
+    private static final int PHOTO_DETAIL_REQUEST = 1; // You can choose any integer
     private ActivityResultLauncher<Intent> mStartForResult;
-    private static final int REQUEST_IMAGE_GET = 1;
     private GridLayout photoGridView;
 
     @Override
@@ -97,7 +94,7 @@ public class AlbumActivity extends AppCompatActivity {
 
         // Set up the floating action button
         FloatingActionButton fab = findViewById(R.id.floatingActionButton);
-        fab.setOnClickListener(v -> showPopupMenu(v));
+        fab.setOnClickListener(this::showPopupMenu);
 
         // Set up result launcher for photo picking
         mStartForResult = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
@@ -109,6 +106,21 @@ public class AlbumActivity extends AppCompatActivity {
                     }
                 });
     }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == PHOTO_DETAIL_REQUEST && resultCode == RESULT_OK) {
+            // Refresh album data
+            AlbumCollection albumCollection = loadAlbumCollection();
+            selectedAlbum = albumCollection.findAlbumByName(selectedAlbum.getAlbumName());
+            if (selectedAlbum != null) {
+                photos = selectedAlbum.getPhotos();
+            }
+            displayPhotos();
+        }
+    }
+
 
     private void setupUI() {
         photoGridView = findViewById(R.id.photoGridView);
@@ -153,10 +165,6 @@ public class AlbumActivity extends AppCompatActivity {
         }
     }
 
-
-
-
-
     private void startSlideshow() {
         if (!photos.isEmpty()) {
             Intent slideshowIntent = new Intent(this, SlideshowActivity.class);
@@ -166,52 +174,13 @@ public class AlbumActivity extends AppCompatActivity {
         }
     }
 
-    private void displaySelectedPhoto(int position) {
-        if (position >= 0 && position < photos.size()) {
-            Photo selectedPhoto = photos.get(position);
-            Uri photoUri = Uri.parse(selectedPhoto.getImagePath());
-
-            ImageView imageView = new ImageView(this);
-            GridLayout.LayoutParams params = new GridLayout.LayoutParams();
-
-            int screenWidth = getResources().getDisplayMetrics().widthPixels;
-            int imageWidth = screenWidth / 2; // To make it two images per row
-            params.width = imageWidth;
-            params.height = imageWidth; // This assumes a square aspect ratio
-
-            params.columnSpec = GridLayout.spec(position % 2);
-            params.rowSpec = GridLayout.spec(position / 2);
-            imageView.setLayoutParams(params);
-
-            imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
-            imageView.setPadding(0, 0, 0, 0); // Adjust padding as needed
-
-            // Load and set the image for the selected photo
-            Bitmap bitmap = loadThumbnail(photoUri, imageWidth, imageWidth); // Now passing width and height
-            if (bitmap != null) {
-                imageView.setImageBitmap(bitmap);
-            }
-
-            // Add click listener to view photo details or implement your logic
-            imageView.setOnClickListener(v -> {
-                // Handle displaying photo details
-            });
-
-            photoGridView.addView(imageView);
-        }
-    }
-
 
     private void onPhotoSelected(int photoIndex) {
         Photo selectedPhoto = photos.get(photoIndex);
         Intent intent = new Intent(this, PhotoDetailActivity.class);
         intent.putExtra("photoUri", selectedPhoto.getImagePath());
-        // pass tag for photo here
-
-
-        startActivity(intent);
+        startActivityForResult(intent, PHOTO_DETAIL_REQUEST); // Define PHOTO_DETAIL_REQUEST as a constant
     }
-
 
 
 
@@ -261,15 +230,13 @@ public class AlbumActivity extends AppCompatActivity {
     }
 
 
-
-
     private Uri saveImageToInternalStorage(Uri sourceUri) {
         // Create a new file in the internal storage
         String fileName = "image_" + System.currentTimeMillis() + ".png";
         File internalFile = new File(getFilesDir(), fileName);
 
         try (InputStream inputStream = getContentResolver().openInputStream(sourceUri);
-             OutputStream outputStream = new FileOutputStream(internalFile)) {
+             OutputStream outputStream = Files.newOutputStream(internalFile.toPath())) {
             if (inputStream != null) {
                 // Copy the image data from the source Uri to the internal file
                 byte[] buffer = new byte[1024];
@@ -289,44 +256,6 @@ public class AlbumActivity extends AppCompatActivity {
         return sourceUri;
     }
 
-    private void showMovePhotoDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Move Photo to Album");
-
-        List<String> allAlbumNames = getAllAlbumNames();
-        CharSequence[] albums = allAlbumNames.toArray(new CharSequence[0]);
-
-        builder.setItems(albums, (dialog, which) -> movePhotoToAlbum(allAlbumNames.get(which)));
-
-        builder.setNegativeButton("Cancel", null);
-        AlertDialog dialog = builder.create();
-        dialog.show();
-    }
-
-    private void showDeletePhotoDialog() {
-        new AlertDialog.Builder(this)
-                .setTitle("Delete Photo")
-                .setMessage("Are you sure you want to delete this photo?")
-                .setPositiveButton(android.R.string.yes, (dialog, which) -> deletePhoto())
-                .setNegativeButton(android.R.string.no, null)
-                .show();
-    }
-
-    private List<String> getAllAlbumNames() {
-        List<String> albumNames = new ArrayList<>();
-        for (Album album : loadAlbumCollection().getAlbums()) {
-            albumNames.add(album.getAlbumName());
-        }
-        return albumNames;
-    }
-
-    private void movePhotoToAlbum(String albumName) {
-        // Implement the logic to move the current photo to the selected album
-    }
-
-    private void deletePhoto() {
-        // Implement the logic to delete the current photo from the album
-    }
 
     private Bitmap loadThumbnail(Uri uri, int targetW, int targetH) {
         try {
@@ -359,79 +288,13 @@ public class AlbumActivity extends AppCompatActivity {
         return null;
     }
 
-    private void showPhotoActionDialog(boolean isDeleteAction) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle(isDeleteAction ? "Delete Photo" : "Move Photo");
-
-        // Convert the photo file paths or names into a CharSequence array for the dialog
-        CharSequence[] photoNames = new CharSequence[photos.size()];
-        for (int i = 0; i < photos.size(); i++) {
-            photoNames[i] = new File(photos.get(i).getImagePath()).getName();
-        }
-
-        builder.setItems(photoNames, (dialog, which) -> {
-            if (isDeleteAction) {
-                deletePhoto(which);
-            } else {
-                showMoveAlbumSelectionDialog(which);
-            }
-        });
-
-        builder.setNegativeButton("Cancel", null);
-        AlertDialog dialog = builder.create();
-        dialog.show();
-    }
-
-    private void showMoveAlbumSelectionDialog(int photoIndex) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Select Album to Move Photo To");
-
-        // Assuming you have a method to get all album names
-        List<String> albumNames = getAllAlbumNames();
-        CharSequence[] albums = albumNames.toArray(new CharSequence[0]);
-
-        builder.setItems(albums, (dialog, which) -> movePhotoToAlbum(photoIndex, albumNames.get(which)));
-
-        builder.setNegativeButton("Cancel", null);
-        AlertDialog dialog = builder.create();
-        dialog.show();
-    }
-
-    private void movePhotoToAlbum(int photoIndex, String targetAlbumName) {
-        Photo photo = photos.get(photoIndex);
-        Album targetAlbum = loadAlbumCollection().findAlbumByName(targetAlbumName);
-
-        if (targetAlbum != null && !selectedAlbum.getAlbumName().equals(targetAlbumName)) {
-            // Remove from current album and add to the target album
-            selectedAlbum.getPhotos().remove(photoIndex);
-            targetAlbum.getPhotos().add(photo);
-
-            // Save the updated album collection
-            saveAlbumCollection(loadAlbumCollection());
-
-            // Update UI
-            displayPhotos();
-        }
-    }
-
-    private void deletePhoto(int photoIndex) {
-        // Remove photo from the album
-        photos.remove(photoIndex);
-
-        // Save the updated album collection
-        saveAlbumCollection(loadAlbumCollection());
-
-        // Update UI
-        displayPhotos();
-    }
-
 
     // _________________________________________________________________
 //                              FILE IO
 
     private void saveAlbumCollection(AlbumCollection albumCollection) {
         File file = new File(getFilesDir(), "data.dat");
-        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file))) {
+        try (ObjectOutputStream oos = new ObjectOutputStream(Files.newOutputStream(file.toPath()))) {
             oos.writeObject(albumCollection);
         } catch (IOException e) {
             e.printStackTrace();
@@ -441,7 +304,7 @@ public class AlbumActivity extends AppCompatActivity {
     private AlbumCollection loadAlbumCollection() {
         File file = new File(getFilesDir(), "data.dat");
         if (file.exists()) {
-            try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
+            try (ObjectInputStream ois = new ObjectInputStream(Files.newInputStream(file.toPath()))) {
                 return (AlbumCollection) ois.readObject();
             } catch (IOException | ClassNotFoundException e) {
                 e.printStackTrace();

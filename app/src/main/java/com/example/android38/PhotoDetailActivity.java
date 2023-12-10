@@ -19,9 +19,6 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.example.android38.Photo;
-import com.example.android38.R;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -29,6 +26,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.List;
 
 public class PhotoDetailActivity extends Activity {
 
@@ -129,23 +129,75 @@ public class PhotoDetailActivity extends Activity {
         return null; // Return null if no matching photo is found
     }
 
-    private Bitmap loadThumbnail(Uri uri) {
-        try {
-            return BitmapFactory.decodeStream(getContentResolver().openInputStream(uri));
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
+
+    private void deletePhoto() {
+        Album album = findAlbumContainingPhoto(selectedPhoto);
+        if (album != null) {
+            album.getPhotos().remove(selectedPhoto);
+            saveAlbumCollection(albumCollection); // Save changes
+            Toast.makeText(this, "Photo deleted", Toast.LENGTH_SHORT).show();
+            setResult(RESULT_OK); // Set result for the calling activity
+            finish(); // Close the activity
+        } else {
+            Toast.makeText(this, "Error: Photo not found in any album", Toast.LENGTH_SHORT).show();
         }
     }
 
-    private void deletePhoto() {
-        // Implement the logic to delete the photo
-        Toast.makeText(this, "Delete Photo functionality not implemented", Toast.LENGTH_SHORT).show();
+
+    private Album findAlbumContainingPhoto(Photo photo) {
+        for (Album album : albumCollection.getAlbums()) {
+            if (album.getPhotos().contains(photo)) {
+                return album;
+            }
+        }
+        return null;
     }
 
+
     private void movePhoto() {
-        // Implement the logic to move the photo to another album
-        Toast.makeText(this, "Move Photo functionality not implemented", Toast.LENGTH_SHORT).show();
+        if (selectedPhoto != null) {
+            showMovePhotoDialog();
+        } else {
+            Toast.makeText(this, "No photo selected", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void showMovePhotoDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Select Album to Move Photo To");
+
+        List<String> albumNames = getAlbumNames();
+        CharSequence[] albums = albumNames.toArray(new CharSequence[0]);
+
+        builder.setItems(albums, (dialog, which) -> movePhotoToAlbum(albumNames.get(which)));
+
+        builder.setNegativeButton("Cancel", null);
+        AlertDialog dialog = builder.create();
+        dialog.show();
+    }
+
+    private List<String> getAlbumNames() {
+        List<String> names = new ArrayList<>();
+        for (Album album : albumCollection.getAlbums()) {
+            names.add(album.getAlbumName());
+        }
+        return names;
+    }
+
+    private void movePhotoToAlbum(String targetAlbumName) {
+        Album currentAlbum = findAlbumContainingPhoto(selectedPhoto);
+        Album targetAlbum = albumCollection.findAlbumByName(targetAlbumName);
+
+        if (currentAlbum != null && targetAlbum != null && !currentAlbum.equals(targetAlbum)) {
+            currentAlbum.getPhotos().remove(selectedPhoto);
+            targetAlbum.addPhoto(selectedPhoto);
+            saveAlbumCollection(albumCollection); // Save changes to the album collection
+            Toast.makeText(this, "Photo moved to " + targetAlbumName, Toast.LENGTH_SHORT).show();
+            setResult(RESULT_OK); // Set result for the calling activity
+            finish(); // Close the activity
+        } else {
+            Toast.makeText(this, "Error: Unable to move photo", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void addTag() {
@@ -277,10 +329,9 @@ public class PhotoDetailActivity extends Activity {
             inputStream.close();
 
             // Calculate the inSampleSize value
-            int inSampleSize = calculateInSampleSize(options, desiredWidth, desiredHeight);
 
             // Decode the image file into a smaller image to save memory
-            options.inSampleSize = inSampleSize;
+            options.inSampleSize = calculateInSampleSize(options, desiredWidth, desiredHeight);
             options.inJustDecodeBounds = false;
             inputStream = contentResolver.openInputStream(uri);
             Bitmap scaledBitmap = BitmapFactory.decodeStream(inputStream, null, options);
@@ -317,7 +368,7 @@ public class PhotoDetailActivity extends Activity {
 
     private void saveAlbumCollection(AlbumCollection albumCollection) {
         File file = new File(getFilesDir(), "data.dat");
-        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file))) {
+        try (ObjectOutputStream oos = new ObjectOutputStream(Files.newOutputStream(file.toPath()))) {
             oos.writeObject(albumCollection);
         } catch (IOException e) {
             e.printStackTrace();
@@ -327,7 +378,7 @@ public class PhotoDetailActivity extends Activity {
     private AlbumCollection loadAlbumCollection() {
         File file = new File(getFilesDir(), "data.dat");
         if (file.exists()) {
-            try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
+            try (ObjectInputStream ois = new ObjectInputStream(Files.newInputStream(file.toPath()))) {
                 return (AlbumCollection) ois.readObject();
             } catch (IOException | ClassNotFoundException e) {
                 e.printStackTrace();
