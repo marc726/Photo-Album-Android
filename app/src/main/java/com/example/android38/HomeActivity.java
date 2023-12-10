@@ -22,6 +22,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -81,12 +82,9 @@ public class HomeActivity extends AppCompatActivity {
 
 
         Button searchButton = findViewById(R.id.searchButton);
-        searchButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                Intent intent = new Intent(HomeActivity.this, SearchActivity.class);
-                startActivity(intent);
-            }
+        searchButton.setOnClickListener(v -> {
+            Intent intent = new Intent(this, SearchActivity.class);
+            startActivity(intent);
         });
     }
 
@@ -102,7 +100,7 @@ public class HomeActivity extends AppCompatActivity {
     private void loadAlbumData() {
         File file = new File(getFilesDir(), "data.dat");
         if (file.exists()) {
-            try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
+            try (ObjectInputStream ois = new ObjectInputStream(Files.newInputStream(file.toPath()))) {
                 albumCollection = (AlbumCollection) ois.readObject();
             } catch (IOException | ClassNotFoundException e) {
                 e.printStackTrace();
@@ -473,7 +471,7 @@ public class HomeActivity extends AppCompatActivity {
 
     private void saveAlbumData(AlbumCollection albumCollection) {
         File file = new File(getFilesDir(), "data.dat");
-        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(file))) {
+        try (ObjectOutputStream oos = new ObjectOutputStream(Files.newOutputStream(file.toPath()))) {
             oos.writeObject(albumCollection);
         } catch (IOException e) {
             e.printStackTrace();
@@ -485,7 +483,7 @@ public class HomeActivity extends AppCompatActivity {
         AlbumCollection albumCollection = null;
 
         if (file.exists()) {
-            try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(file))) {
+            try (ObjectInputStream ois = new ObjectInputStream(Files.newInputStream(file.toPath()))) {
                 Object data = ois.readObject();
                 if (data instanceof AlbumCollection) {
                     albumCollection = (AlbumCollection) data;

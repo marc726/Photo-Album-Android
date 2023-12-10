@@ -1,35 +1,100 @@
-<?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <Button
-        android:id="@+id/backButton"
+    <!-- Toolbar with Clickable Text for Back and Clear Search -->
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="?attr/colorPrimary"
+        android:paddingLeft="16dp"
+        android:paddingRight="16dp">
+
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent">
+
+            <TextView
+                android:id="@+id/backButton"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:text="Back"
+                android:textAppearance="?attr/textAppearanceButton"
+                android:clickable="true"
+                android:focusable="true"
+                android:padding="16dp"
+                android:layout_alignParentStart="true" />
+
+            <TextView
+                android:id="@+id/clearSearchButton"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:text="Clear Search"
+                android:textAppearance="?attr/textAppearanceButton"
+                android:clickable="true"
+                android:focusable="true"
+                android:padding="16dp"
+                android:layout_alignParentEnd="true" />
+        </RelativeLayout>
+    </androidx.appcompat.widget.Toolbar>
+
+    <!-- Spinner for Selecting First Tag Type -->
+    <Spinner
+        android:id="@+id/tagTypeSpinner1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/toolbar"
+        android:entries="@array/tag_types"/>
+
+    <!-- First Search Query Input -->
+    <AutoCompleteTextView
+        android:id="@+id/autoCompleteSearchText1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/tagTypeSpinner1"
+        android:hint="Enter search query"
+        android:inputType="text"/>
+
+    <!-- Checkboxes for Conjunction and Disjunction -->
+    <CheckBox
+        android:id="@+id/checkBoxConjunction"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_alignParentStart="true"
-        android:layout_alignParentTop="true"
-        android:drawableLeft="@android:drawable/ic_media_previous"
-        android:padding="10dp"
-        android:text="Back"
-        tools:layout_editor_absoluteX="16dp"
-        tools:layout_editor_absoluteY="5dp" />
+        android:layout_below="@id/autoCompleteSearchText1"
+        android:text="Conjunction"/>
 
-    <ScrollView
+    <CheckBox
+        android:id="@+id/checkBoxDisjunction"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/autoCompleteSearchText1"
+        android:layout_toRightOf="@id/checkBoxConjunction"
+        android:text="Disjunction"/>
+
+    <!-- Second Spinner for Selecting Tag Type (Initially Hidden) -->
+    <Spinner
+        android:id="@+id/spinnerTagType2"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:layout_below="@id/backButton"
-        android:fillViewport="true">
+        android:layout_height="wrap_content"
+        android:layout_below="@id/checkBoxConjunction"
+        android:entries="@array/tag_types"
+        android:visibility="gone"/>
 
-        <GridLayout
-            android:id="@+id/photoGridView"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:columnCount="2"
-            android:orientation="horizontal"
-            android:padding="0dp">
-            <!-- Content of GridLayout -->
-        </GridLayout>
-    </ScrollView>
-</androidx.constraintlayout.widget.ConstraintLayout>
+    <!-- Second Search Query Input (Initially Hidden) -->
+    <AutoCompleteTextView
+        android:id="@+id/autoCompleteSearchText2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/spinnerTagType2"
+        android:hint="Enter second search query"
+        android:inputType="text"
+        android:visibility="gone"/>
+
+    <!-- ListView for Displaying Search Results -->
+    <ListView
+        android:id="@+id/searchResultsListView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/autoCompleteSearchText2"/>
+</RelativeLayout>
