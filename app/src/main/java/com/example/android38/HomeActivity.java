@@ -24,7 +24,6 @@ import java.util.List;
 
 public class HomeActivity extends AppCompatActivity {
 
-    private List<Album> albums;
     private ArrayAdapter<Album> adapter;
     private AlbumCollection albumCollection;
 

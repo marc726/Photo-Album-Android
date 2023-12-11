@@ -2,10 +2,8 @@ package com.example.android38;
 
 import java.io.Serializable;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.Objects;
 
-import com.example.android38.Tag;
 
 public class Photo implements Serializable {
     static final long serialVersionUID = 1L;

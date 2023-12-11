@@ -1,7 +1,6 @@
 package com.example.android38;
 
 import java.io.Serializable;
-import java.util.ArrayList;
 import java.util.Objects;
 
 public class Tag implements Serializable {
