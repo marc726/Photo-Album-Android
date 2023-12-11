@@ -32,7 +32,7 @@ public class PhotoDetailActivity extends Activity {
 
     private ImageView photoImageView;
     private TextView tagTextView;
-    private Photo selectedPhoto; // Assuming your Photo class has methods for handling tags
+    private Photo selectedPhoto;
     private AlbumCollection albumCollection;
     private String photoUriString;
 
@@ -58,7 +58,6 @@ public class PhotoDetailActivity extends Activity {
         photoUriString = getIntent().getStringExtra("photoUri");
 
         // Initialize selectedPhoto based on the URI
-        // This should be replaced with your actual logic to find the Photo object by its URI
         selectedPhoto = findPhotoByUri(photoUriString);
 
         if (selectedPhoto == null) {
@@ -114,7 +113,7 @@ public class PhotoDetailActivity extends Activity {
     }
 
     private Photo findPhotoByUri(String photoUriString) {
-        AlbumCollection albumCollection = loadAlbumCollection(); // Assuming you have a method to load your albums
+        AlbumCollection albumCollection = loadAlbumCollection();
 
         for (Album album : albumCollection.getAlbums()) {
             for (Photo photo : album.getPhotos()) {

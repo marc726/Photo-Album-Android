@@ -165,7 +165,7 @@ public class AlbumActivity extends AppCompatActivity {
     private void startSlideshow() {
         if (!photos.isEmpty()) {
             Intent slideshowIntent = new Intent(this, SlideshowActivity.class);
-            slideshowIntent.putExtra("photos", new ArrayList<>(photos)); // Ensure your Photo class is Serializable
+            slideshowIntent.putExtra("photos", new ArrayList<>(photos));
             slideshowIntent.putExtra("currentPhotoIndex", currentPhotoIndex);
             startActivity(slideshowIntent);
         }
